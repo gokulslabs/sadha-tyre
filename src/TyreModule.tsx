@@ -779,10 +779,11 @@ function TyreViewSection() {
               const hasData = Number(t.current_km) > 0 || Boolean(t.brand || t.serial_no);
               const health = tyreHealth(Number(t.current_km));
               const cls = healthClasses[health];
-              return <button key={t.id} type="button" disabled={t.id.startsWith("preview-")} onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}>
+              return <button key={t.id} type="button" title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`} disabled={t.id.startsWith("preview-")} onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}>
                 <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">{t.position_code}</span>
                 <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">{hasData ? shortKm(Number(t.current_km)) : "N/A"}</span>
-                {hasData && <span className={`absolute left-1/2 bottom-3 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`} />}
+                {hasData && <span className={`absolute left-1/2 bottom-7 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`} />}
+                {hasData && <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">{t.tyre_type}</span>}
               </button>;
             })}
           </div>
