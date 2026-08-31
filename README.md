@@ -20,3 +20,7 @@ The migrations create only the standalone tyre tables (`vehicles`, `tyres`,
 `teeth_fitment`, `service_entries`, and `tyre_audit_log`). The final migration
 also creates the `tyre-documents` Storage bucket and its client policies for
 replacement-document uploads.
+
+Production authentication and tenant isolation are prepared by
+`20260901000000_tenant_isolation.sql`. Add the authenticated user UUID to
+`public.organization_members`, then set `VITE_REQUIRE_AUTH=true` in production.
