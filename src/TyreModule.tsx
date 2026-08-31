@@ -1761,11 +1761,11 @@ function TyreViewSection() {
                   />
                   <StatCell
                     label="Current Vehicle KM"
-                    value={Number(selected.current_km).toLocaleString("en-IN")}
+                    value={Number(vehicle.odometer).toLocaleString("en-IN")}
                   />
                   <StatCell
                     label="Tyre Usage"
-                    value={`${Number(selected.current_km).toLocaleString("en-IN")} km`}
+                    value={`${Math.max(0, Number(vehicle.odometer) - Number(selected.fitted_km ?? 0)).toLocaleString("en-IN")} km`}
                   />
                   <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
