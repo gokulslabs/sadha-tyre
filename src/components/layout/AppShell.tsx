@@ -25,6 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button size="sm" className="hidden bg-indigo-600 hover:bg-indigo-700 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
           <button type="button" aria-label="Notification" className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
           <button type="button" aria-label="Settings" className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
+          <button type="button" aria-label="John Doe" className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
         </div>
       </header>
       {sidebarOpen && (
