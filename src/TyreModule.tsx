@@ -1466,7 +1466,7 @@ function TyreViewSection() {
                   disabled={t.id.startsWith("preview-")}
                   onClick={() => selectTyre(t)}
                   aria-label={`Tyre ${t.position_code}`}
-                  className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
+                  className={`relative h-[110px] w-[110px] rounded-full transition hover:scale-105 ${hasData ? `${cls.fill} ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20 bg-muted/10"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
                 >
                   <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">
                     {t.position_code}

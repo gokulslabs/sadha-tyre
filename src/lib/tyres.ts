@@ -52,10 +52,10 @@ export function costPerKm(cost: number, km: number): number {
   return km > 0 ? cost / km : 0;
 }
 
-export const healthClasses: Record<TyreHealth, { ring: string; dot: string; text: string }> = {
-  Good: { ring: "ring-success/70", dot: "bg-success", text: "text-success" },
-  Moderate: { ring: "ring-warning/70", dot: "bg-warning", text: "text-warning" },
-  Replace: { ring: "ring-destructive/70", dot: "bg-destructive", text: "text-destructive" },
+export const healthClasses: Record<TyreHealth, { ring: string; dot: string; text: string; fill: string }> = {
+  Good: { ring: "ring-success/70", dot: "bg-success", text: "text-success", fill: "bg-success/10" },
+  Moderate: { ring: "ring-warning/70", dot: "bg-warning", text: "text-warning", fill: "bg-warning/10" },
+  Replace: { ring: "ring-destructive/70", dot: "bg-destructive", text: "text-destructive", fill: "bg-destructive/10" },
 };
 
 export const inr = (n: number) =>
