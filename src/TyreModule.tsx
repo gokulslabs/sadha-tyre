@@ -1218,6 +1218,7 @@ function TyreViewSection() {
     serial_no: "",
     remark: "",
   });
+  const [replacementDocument, setReplacementDocument] = useState<File | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [newVehicle, setNewVehicle] = useState({
     vehicle_number: "",
@@ -1395,11 +1396,12 @@ function TyreViewSection() {
         event_type: "replaced",
         km_reading: Number(replacement.km_reading) || 0,
         cost: Number(replacement.amount) || 0,
-        note: replacement.remark || "Tyre replaced",
+        note: [`Source: ${replacement.source}`, replacement.remark, replacementDocument ? `Document: ${replacementDocument.name}` : ""].filter(Boolean).join(" · "),
       });
       toast.success(`Tyre ${selected.position_code} replaced`);
       setReplacementOpen(false);
       setSelected(null);
+      setReplacementDocument(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not replace tyre");
     }
@@ -1934,7 +1936,11 @@ function TyreViewSection() {
                 />
               </Field>
               <Field label="Document">
-                <Input type="file" className="cursor-pointer text-xs" />
+                <Input
+                  type="file"
+                  className="cursor-pointer text-xs"
+                  onChange={(e) => setReplacementDocument(e.target.files?.[0] ?? null)}
+                />
               </Field>
             </div>
             <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
