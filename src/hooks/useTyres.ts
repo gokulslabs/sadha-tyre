@@ -113,6 +113,7 @@ export type TyreUpdate = {
   cost?: number;
   status?: string;
   fitted_on?: string | null;
+  fitted_km?: number;
   remark?: string | null;
 };
 
