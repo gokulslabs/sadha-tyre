@@ -126,6 +126,23 @@ function displayDate(value?: string | null) {
       });
 }
 
+function exportCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (!rows.length) {
+    toast.info("There are no records to export yet");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers, ...rows.map((row) => headers.map((key) => String(row[key] ?? "").replaceAll('"', '""')))]
+    .map((row) => row.map((cell) => `"${cell}"`).join(","))
+    .join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-md bg-card shadow-panel">{children}</div>;
 }
@@ -183,6 +200,7 @@ function TyreInventorySection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-inventory.csv", data ?? [])}>Export CSV</Button></div>
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Entry type">
@@ -360,6 +378,7 @@ function TyreFitmentSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-fitment.csv", data ?? [])}>Export CSV</Button></div>
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -584,6 +603,7 @@ function TeethPurchaseSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("teeth-purchases.csv", data ?? [])}>Export CSV</Button></div>
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Purchase
       </h3>
@@ -783,6 +803,7 @@ function TeethFitmentSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("teeth-fitment.csv", data ?? [])}>Export CSV</Button></div>
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Fitment
       </h3>
@@ -975,6 +996,7 @@ function AuditLogSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-audit-log.csv", rows)}>Export CSV</Button></div>
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
@@ -1116,6 +1138,7 @@ function ServicesSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("services.csv", data ?? [])}>Export CSV</Button></div>
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
