@@ -65,6 +65,7 @@ export const inr0 = (n: number) =>
   "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
 export function shortKm(km: number): string {
+  if (km >= 100000) return `${Math.round(km / 10000) / 10}L`.replace(".0L", "L");
   if (km >= 1000) return `${Math.round(km / 100) / 10}K`.replace(".0K", "K");
   return String(Math.round(km));
 }
