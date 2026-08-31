@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { Plus, Package, Wrench, Cog, Hammer, History, Truck, Wand2 } from "lucide-react";
+import {
+  Plus,
+  Package,
+  Wrench,
+  Cog,
+  Hammer,
+  History,
+  Truck,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -21,8 +30,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useVehicles, useTyres, useProvisionTyres, useSetExistingTyre, useSaveTyre, useAddTyreEvent, useAddVehicle, type Tyre } from "@/hooks/useTyres";
-import { axlePlan, healthClasses, shortKm, tyreHealth, costPerKm, inr, WHEEL_CONFIGS, tyrePositions } from "@/lib/tyres";
+import {
+  useVehicles,
+  useTyres,
+  useProvisionTyres,
+  useSetExistingTyre,
+  useSaveTyre,
+  useAddTyreEvent,
+  useAddVehicle,
+  type Tyre,
+} from "@/hooks/useTyres";
+import {
+  axlePlan,
+  healthClasses,
+  shortKm,
+  tyreHealth,
+  costPerKm,
+  inr,
+  WHEEL_CONFIGS,
+  tyrePositions,
+} from "@/lib/tyres";
 import {
   AUDIT_TABLE_LABELS,
   OLD_TYRE_STATUSES,
@@ -51,7 +78,10 @@ function VehicleSelect({
 }) {
   const { data: vehicles } = useVehicles();
   return (
-    <Select value={value || "none"} onValueChange={(v) => onChange(v === "none" ? "" : v)}>
+    <Select
+      value={value || "none"}
+      onValueChange={(v) => onChange(v === "none" ? "" : v)}
+    >
       <SelectTrigger>
         <SelectValue placeholder="Select vehicle" />
       </SelectTrigger>
@@ -67,7 +97,13 @@ function VehicleSelect({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
@@ -81,7 +117,14 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function StatCell({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg border border-border bg-muted/30 p-3"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>;
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-3">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+    </div>
+  );
 }
 
 /* ================= Tyre Inventory ================= */
@@ -108,7 +151,13 @@ function TyreInventorySection() {
         quantity: Number(form.quantity) || 0,
       });
       toast.success("Tyre stock added");
-      setForm((f) => ({ ...f, brand: "", tyre_no: "", tyre_size: "", quantity: "" }));
+      setForm((f) => ({
+        ...f,
+        brand: "",
+        tyre_no: "",
+        tyre_size: "",
+        quantity: "",
+      }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not add stock");
     }
@@ -119,29 +168,64 @@ function TyreInventorySection() {
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Entry type">
-            <Select value={form.entry_type} onValueChange={(v) => setForm((f) => ({ ...f, entry_type: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.entry_type}
+              onValueChange={(v) => setForm((f) => ({ ...f, entry_type: v }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {TYRE_ENTRY_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t.toUpperCase()}</SelectItem>
+                  <SelectItem key={t} value={t}>
+                    {t.toUpperCase()}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
           <Field label="Date">
-            <Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} />
+            <Input
+              type="date"
+              value={form.entry_date}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, entry_date: e.target.value }))
+              }
+            />
           </Field>
           <Field label="Brand name">
-            <Input value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} />
+            <Input
+              value={form.brand}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, brand: e.target.value }))
+              }
+            />
           </Field>
           <Field label="Tyre no">
-            <Input value={form.tyre_no} onChange={(e) => setForm((f) => ({ ...f, tyre_no: e.target.value }))} />
+            <Input
+              value={form.tyre_no}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tyre_no: e.target.value }))
+              }
+            />
           </Field>
           <Field label="Tyre size">
-            <Input value={form.tyre_size} onChange={(e) => setForm((f) => ({ ...f, tyre_size: e.target.value }))} />
+            <Input
+              value={form.tyre_size}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tyre_size: e.target.value }))
+              }
+            />
           </Field>
           <Field label="Quantity (no of tyres)">
-            <Input type="number" min={0} value={form.quantity} onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))} />
+            <Input
+              type="number"
+              min={0}
+              value={form.quantity}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, quantity: e.target.value }))
+              }
+            />
           </Field>
         </div>
         <div className="flex justify-end border-t border-border px-4 py-3">
@@ -165,14 +249,27 @@ function TyreInventorySection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : (data ?? []).length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="py-16 text-center text-muted-foreground">No tyre stock entries yet</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="py-16 text-center text-muted-foreground"
+                >
+                  No tyre stock entries yet
+                </TableCell>
+              </TableRow>
             ) : (
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
-                  <TableCell className="font-medium uppercase">{r.entry_type}</TableCell>
+                  <TableCell className="font-medium uppercase">
+                    {r.entry_type}
+                  </TableCell>
                   <TableCell>{r.brand || "—"}</TableCell>
                   <TableCell>{r.tyre_no || "—"}</TableCell>
                   <TableCell>{r.tyre_size || "—"}</TableCell>
@@ -221,7 +318,17 @@ function TyreFitmentSection() {
         old_tyre_stock: form.old_tyre_stock.trim() || null,
       });
       toast.success("Fitment recorded");
-      setForm((f) => ({ ...f, brand: "", tyre_no: "", tyre_size: "", driver_name: "", tyre_place: "", km: "", remarks: "", old_tyre_stock: "" }));
+      setForm((f) => ({
+        ...f,
+        brand: "",
+        tyre_no: "",
+        tyre_size: "",
+        driver_name: "",
+        tyre_place: "",
+        km: "",
+        remarks: "",
+        old_tyre_stock: "",
+      }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not record fitment");
     }
@@ -231,27 +338,109 @@ function TyreFitmentSection() {
     <div className="space-y-4">
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Date"><Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} /></Field>
-          <Field label="Brand name"><Input value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} /></Field>
-          <Field label="Tyre no"><Input value={form.tyre_no} onChange={(e) => setForm((f) => ({ ...f, tyre_no: e.target.value }))} /></Field>
-          <Field label="Tyre size"><Input value={form.tyre_size} onChange={(e) => setForm((f) => ({ ...f, tyre_size: e.target.value }))} /></Field>
-          <Field label="Vehicle no"><VehicleSelect value={form.vehicle_id} onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))} /></Field>
-          <Field label="Driver name"><Input value={form.driver_name} onChange={(e) => setForm((f) => ({ ...f, driver_name: e.target.value }))} /></Field>
-          <Field label="Tyre place"><Input value={form.tyre_place} onChange={(e) => setForm((f) => ({ ...f, tyre_place: e.target.value }))} /></Field>
-          <Field label="KM"><Input type="number" min={0} value={form.km} onChange={(e) => setForm((f) => ({ ...f, km: e.target.value }))} /></Field>
-          <Field label="Remarks"><Input value={form.remarks} onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))} /></Field>
+          <Field label="Date">
+            <Input
+              type="date"
+              value={form.entry_date}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, entry_date: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Brand name">
+            <Input
+              value={form.brand}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, brand: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Tyre no">
+            <Input
+              value={form.tyre_no}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tyre_no: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Tyre size">
+            <Input
+              value={form.tyre_size}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tyre_size: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Vehicle no">
+            <VehicleSelect
+              value={form.vehicle_id}
+              onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
+            />
+          </Field>
+          <Field label="Driver name">
+            <Input
+              value={form.driver_name}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, driver_name: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Tyre place">
+            <Input
+              value={form.tyre_place}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, tyre_place: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="KM">
+            <Input
+              type="number"
+              min={0}
+              value={form.km}
+              onChange={(e) => setForm((f) => ({ ...f, km: e.target.value }))}
+            />
+          </Field>
+          <Field label="Remarks">
+            <Input
+              value={form.remarks}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, remarks: e.target.value }))
+              }
+            />
+          </Field>
           <Field label="Old tyre status">
-            <Select value={form.old_tyre_status} onValueChange={(v) => setForm((f) => ({ ...f, old_tyre_status: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.old_tyre_status}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, old_tyre_status: v }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {OLD_TYRE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {OLD_TYRE_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Old tyre stock"><Input value={form.old_tyre_stock} onChange={(e) => setForm((f) => ({ ...f, old_tyre_stock: e.target.value }))} /></Field>
+          <Field label="Old tyre stock">
+            <Input
+              value={form.old_tyre_stock}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, old_tyre_stock: e.target.value }))
+              }
+            />
+          </Field>
         </div>
         <div className="flex justify-end border-t border-border px-4 py-3">
-          <Button onClick={submit} disabled={add.isPending}><Plus className="mr-2 h-4 w-4" /> Record fitment</Button>
+          <Button onClick={submit} disabled={add.isPending}>
+            <Plus className="mr-2 h-4 w-4" /> Record fitment
+          </Button>
         </div>
       </Card>
 
@@ -271,9 +460,20 @@ function TyreFitmentSection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : (data ?? []).length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="py-16 text-center text-muted-foreground">No fitment records yet</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="py-16 text-center text-muted-foreground"
+                >
+                  No fitment records yet
+                </TableCell>
+              </TableRow>
             ) : (
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
@@ -332,35 +532,116 @@ function TeethPurchaseSection() {
         storage_place: form.storage_place,
       });
       toast.success("Teeth purchase added");
-      setForm((f) => ({ ...f, purchase_shop: "", teeth_model: "", rock_teeth: "", washer: "", lock_pin: "", qty: "" }));
+      setForm((f) => ({
+        ...f,
+        purchase_shop: "",
+        teeth_model: "",
+        rock_teeth: "",
+        washer: "",
+        lock_pin: "",
+        qty: "",
+      }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not add teeth purchase");
+      toast.error(
+        e instanceof Error ? e.message : "Could not add teeth purchase",
+      );
     }
   }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-base font-semibold text-foreground">Excavator Teeth — Purchase</h3>
+      <h3 className="text-base font-semibold text-foreground">
+        Excavator Teeth — Purchase
+      </h3>
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Date"><Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} /></Field>
-          <Field label="Purchase shop"><Input value={form.purchase_shop} onChange={(e) => setForm((f) => ({ ...f, purchase_shop: e.target.value }))} /></Field>
-          <Field label="Teeth model"><Input value={form.teeth_model} onChange={(e) => setForm((f) => ({ ...f, teeth_model: e.target.value }))} /></Field>
-          <Field label="Qty"><Input type="number" min={0} value={form.qty} onChange={(e) => setForm((f) => ({ ...f, qty: e.target.value }))} /></Field>
-          <Field label="Rock teeth"><Input type="number" min={0} value={form.rock_teeth} onChange={(e) => setForm((f) => ({ ...f, rock_teeth: e.target.value }))} /></Field>
-          <Field label="Washer"><Input type="number" min={0} value={form.washer} onChange={(e) => setForm((f) => ({ ...f, washer: e.target.value }))} /></Field>
-          <Field label="Lock pin"><Input type="number" min={0} value={form.lock_pin} onChange={(e) => setForm((f) => ({ ...f, lock_pin: e.target.value }))} /></Field>
+          <Field label="Date">
+            <Input
+              type="date"
+              value={form.entry_date}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, entry_date: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Purchase shop">
+            <Input
+              value={form.purchase_shop}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, purchase_shop: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Teeth model">
+            <Input
+              value={form.teeth_model}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, teeth_model: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Qty">
+            <Input
+              type="number"
+              min={0}
+              value={form.qty}
+              onChange={(e) => setForm((f) => ({ ...f, qty: e.target.value }))}
+            />
+          </Field>
+          <Field label="Rock teeth">
+            <Input
+              type="number"
+              min={0}
+              value={form.rock_teeth}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, rock_teeth: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Washer">
+            <Input
+              type="number"
+              min={0}
+              value={form.washer}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, washer: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Lock pin">
+            <Input
+              type="number"
+              min={0}
+              value={form.lock_pin}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, lock_pin: e.target.value }))
+              }
+            />
+          </Field>
           <Field label="Storage place">
-            <Select value={form.storage_place} onValueChange={(v) => setForm((f) => ({ ...f, storage_place: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.storage_place}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, storage_place: v }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {STORAGE_PLACES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {STORAGE_PLACES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
         </div>
         <div className="flex justify-end border-t border-border px-4 py-3">
-          <Button onClick={submit} disabled={add.isPending}><Plus className="mr-2 h-4 w-4" /> Add purchase</Button>
+          <Button onClick={submit} disabled={add.isPending}>
+            <Plus className="mr-2 h-4 w-4" /> Add purchase
+          </Button>
         </div>
       </Card>
 
@@ -380,9 +661,20 @@ function TeethPurchaseSection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : (data ?? []).length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">No teeth purchases yet</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="py-12 text-center text-muted-foreground"
+                >
+                  No teeth purchases yet
+                </TableCell>
+              </TableRow>
             ) : (
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
@@ -433,29 +725,110 @@ function TeethFitmentSection() {
         old_teeth_status: form.old_teeth_status.trim() || null,
       });
       toast.success("Teeth fitment recorded");
-      setForm((f) => ({ ...f, new_teeth_qty: "", incharge_name: "", operator_name: "", km: "", hours: "", place: "", old_teeth_status: "" }));
+      setForm((f) => ({
+        ...f,
+        new_teeth_qty: "",
+        incharge_name: "",
+        operator_name: "",
+        km: "",
+        hours: "",
+        place: "",
+        old_teeth_status: "",
+      }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not record teeth fitment");
+      toast.error(
+        e instanceof Error ? e.message : "Could not record teeth fitment",
+      );
     }
   }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-base font-semibold text-foreground">Excavator Teeth — Fitment</h3>
+      <h3 className="text-base font-semibold text-foreground">
+        Excavator Teeth — Fitment
+      </h3>
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Date"><Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} /></Field>
-          <Field label="Vehicle no"><VehicleSelect value={form.vehicle_id} onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))} /></Field>
-          <Field label="New teeth qty"><Input type="number" min={0} value={form.new_teeth_qty} onChange={(e) => setForm((f) => ({ ...f, new_teeth_qty: e.target.value }))} /></Field>
-          <Field label="Incharge name"><Input value={form.incharge_name} onChange={(e) => setForm((f) => ({ ...f, incharge_name: e.target.value }))} /></Field>
-          <Field label="Operator name"><Input value={form.operator_name} onChange={(e) => setForm((f) => ({ ...f, operator_name: e.target.value }))} /></Field>
-          <Field label="KM"><Input type="number" min={0} value={form.km} onChange={(e) => setForm((f) => ({ ...f, km: e.target.value }))} /></Field>
-          <Field label="Hours"><Input type="number" min={0} value={form.hours} onChange={(e) => setForm((f) => ({ ...f, hours: e.target.value }))} /></Field>
-          <Field label="Place"><Input value={form.place} onChange={(e) => setForm((f) => ({ ...f, place: e.target.value }))} /></Field>
-          <Field label="Old teeth status"><Input value={form.old_teeth_status} onChange={(e) => setForm((f) => ({ ...f, old_teeth_status: e.target.value }))} /></Field>
+          <Field label="Date">
+            <Input
+              type="date"
+              value={form.entry_date}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, entry_date: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Vehicle no">
+            <VehicleSelect
+              value={form.vehicle_id}
+              onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
+            />
+          </Field>
+          <Field label="New teeth qty">
+            <Input
+              type="number"
+              min={0}
+              value={form.new_teeth_qty}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, new_teeth_qty: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Incharge name">
+            <Input
+              value={form.incharge_name}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, incharge_name: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Operator name">
+            <Input
+              value={form.operator_name}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, operator_name: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="KM">
+            <Input
+              type="number"
+              min={0}
+              value={form.km}
+              onChange={(e) => setForm((f) => ({ ...f, km: e.target.value }))}
+            />
+          </Field>
+          <Field label="Hours">
+            <Input
+              type="number"
+              min={0}
+              value={form.hours}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, hours: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Place">
+            <Input
+              value={form.place}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, place: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Old teeth status">
+            <Input
+              value={form.old_teeth_status}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, old_teeth_status: e.target.value }))
+              }
+            />
+          </Field>
         </div>
         <div className="flex justify-end border-t border-border px-4 py-3">
-          <Button onClick={submit} disabled={add.isPending}><Plus className="mr-2 h-4 w-4" /> Record fitment</Button>
+          <Button onClick={submit} disabled={add.isPending}>
+            <Plus className="mr-2 h-4 w-4" /> Record fitment
+          </Button>
         </div>
       </Card>
 
@@ -475,15 +848,28 @@ function TeethFitmentSection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : (data ?? []).length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">No teeth fitment records yet</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="py-12 text-center text-muted-foreground"
+                >
+                  No teeth fitment records yet
+                </TableCell>
+              </TableRow>
             ) : (
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
                   <TableCell>{r.vehicle_id || "—"}</TableCell>
-                  <TableCell className="text-right">{r.new_teeth_qty}</TableCell>
+                  <TableCell className="text-right">
+                    {r.new_teeth_qty}
+                  </TableCell>
                   <TableCell>{r.incharge_name || "—"}</TableCell>
                   <TableCell>{r.operator_name || "—"}</TableCell>
                   <TableCell className="text-right">{r.km}</TableCell>
@@ -507,23 +893,30 @@ function diffSummary(log: TyreAuditLog): string {
     const pick: string[] = [];
     for (const [k, v] of Object.entries(newD)) {
       if (["id", "created_at", "updated_at"].includes(k)) continue;
-      if (v !== null && v !== undefined && v !== "") pick.push(`${k}: ${String(v)}`);
+      if (v !== null && v !== undefined && v !== "")
+        pick.push(`${k}: ${String(v)}`);
       if (pick.length >= 4) break;
     }
     return pick.length ? pick.join(" · ") : "New record created";
   }
   if (log.action === "DELETE") {
     const keys = Object.keys(oldD);
-    return keys.length ? `Record removed (${keys.length} fields)` : "Record removed";
+    return keys.length
+      ? `Record removed (${keys.length} fields)`
+      : "Record removed";
   }
   const changes: string[] = [];
   for (const k of Object.keys(newD)) {
     if (["id", "created_at", "updated_at"].includes(k)) continue;
     if (JSON.stringify(oldD[k]) !== JSON.stringify(newD[k])) {
-      changes.push(`${k}: ${String(oldD[k] ?? "—")} → ${String(newD[k] ?? "—")}`);
+      changes.push(
+        `${k}: ${String(oldD[k] ?? "—")} → ${String(newD[k] ?? "—")}`,
+      );
     }
   }
-  return changes.length ? changes.join(" · ") : "No field-level change captured";
+  return changes.length
+    ? changes.join(" · ")
+    : "No field-level change captured";
 }
 
 function AuditLogSection() {
@@ -535,16 +928,23 @@ function AuditLogSection() {
   );
 
   const actionClass = (a: string) =>
-    a === "INSERT" ? "text-success" : a === "DELETE" ? "text-destructive" : "text-warning";
+    a === "INSERT"
+      ? "text-success"
+      : a === "DELETE"
+        ? "text-destructive"
+        : "text-warning";
 
   return (
     <div className="space-y-4">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Tyre Maintenance Audit Trail</h3>
+            <h3 className="text-base font-semibold text-foreground">
+              Tyre Maintenance Audit Trail
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Every insert, update, and delete across inventory, fitment, teeth, services, and tyre positions.
+              Every insert, update, and delete across inventory, fitment, teeth,
+              services, and tyre positions.
             </p>
           </div>
           <div className="w-56">
@@ -558,7 +958,9 @@ function AuditLogSection() {
                 <SelectItem value="UPDATE">Only updates</SelectItem>
                 <SelectItem value="DELETE">Only deletes</SelectItem>
                 {Object.entries(AUDIT_TABLE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                  <SelectItem key={k} value={k}>
+                    {v}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -576,11 +978,21 @@ function AuditLogSection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="py-16 text-center text-muted-foreground">
-                No activity recorded yet — changes made from the other tabs will appear here.
-              </TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="py-16 text-center text-muted-foreground"
+                >
+                  No activity recorded yet — changes made from the other tabs
+                  will appear here.
+                </TableCell>
+              </TableRow>
             ) : (
               rows.map((l) => (
                 <TableRow key={l.id}>
@@ -588,11 +1000,20 @@ function AuditLogSection() {
                     {new Date(l.changed_at).toLocaleString("en-IN")}
                   </TableCell>
                   <TableCell>
-                    <span className={`font-semibold ${actionClass(l.action)}`}>{l.action}</span>
+                    <span className={`font-semibold ${actionClass(l.action)}`}>
+                      {l.action}
+                    </span>
                   </TableCell>
-                  <TableCell>{AUDIT_TABLE_LABELS[l.table_name] ?? l.table_name}</TableCell>
-                  <TableCell className="text-xs">{l.changed_by ? l.changed_by.slice(0, 8) : "—"}</TableCell>
-                  <TableCell className="max-w-[420px] truncate text-xs" title={diffSummary(l)}>
+                  <TableCell>
+                    {AUDIT_TABLE_LABELS[l.table_name] ?? l.table_name}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {l.changed_by ? l.changed_by.slice(0, 8) : "—"}
+                  </TableCell>
+                  <TableCell
+                    className="max-w-[420px] truncate text-xs"
+                    title={diffSummary(l)}
+                  >
                     {diffSummary(l)}
                   </TableCell>
                 </TableRow>
@@ -633,9 +1054,19 @@ function ServicesSection() {
         amount: Number(form.amount) || 0,
       });
       toast.success("Service entry added");
-      setForm((f) => ({ ...f, driver_name: "", from_km: "", to_km: "", particular: "", place: "", amount: "" }));
+      setForm((f) => ({
+        ...f,
+        driver_name: "",
+        from_km: "",
+        to_km: "",
+        particular: "",
+        place: "",
+        amount: "",
+      }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not add service entry");
+      toast.error(
+        e instanceof Error ? e.message : "Could not add service entry",
+      );
     }
   }
 
@@ -643,17 +1074,80 @@ function ServicesSection() {
     <div className="space-y-4">
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Date"><Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} /></Field>
-          <Field label="Vehicle no"><VehicleSelect value={form.vehicle_id} onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))} /></Field>
-          <Field label="Driver name"><Input value={form.driver_name} onChange={(e) => setForm((f) => ({ ...f, driver_name: e.target.value }))} /></Field>
-          <Field label="From KM"><Input type="number" min={0} value={form.from_km} onChange={(e) => setForm((f) => ({ ...f, from_km: e.target.value }))} /></Field>
-          <Field label="To KM"><Input type="number" min={0} value={form.to_km} onChange={(e) => setForm((f) => ({ ...f, to_km: e.target.value }))} /></Field>
-          <Field label="Particular"><Input value={form.particular} onChange={(e) => setForm((f) => ({ ...f, particular: e.target.value }))} /></Field>
-          <Field label="Place"><Input value={form.place} onChange={(e) => setForm((f) => ({ ...f, place: e.target.value }))} /></Field>
-          <Field label="Amount"><Input type="number" min={0} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} /></Field>
+          <Field label="Date">
+            <Input
+              type="date"
+              value={form.entry_date}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, entry_date: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Vehicle no">
+            <VehicleSelect
+              value={form.vehicle_id}
+              onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
+            />
+          </Field>
+          <Field label="Driver name">
+            <Input
+              value={form.driver_name}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, driver_name: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="From KM">
+            <Input
+              type="number"
+              min={0}
+              value={form.from_km}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, from_km: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="To KM">
+            <Input
+              type="number"
+              min={0}
+              value={form.to_km}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, to_km: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Particular">
+            <Input
+              value={form.particular}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, particular: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Place">
+            <Input
+              value={form.place}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, place: e.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Amount">
+            <Input
+              type="number"
+              min={0}
+              value={form.amount}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, amount: e.target.value }))
+              }
+            />
+          </Field>
         </div>
         <div className="flex justify-end border-t border-border px-4 py-3">
-          <Button onClick={submit} disabled={add.isPending}><Plus className="mr-2 h-4 w-4" /> Add service</Button>
+          <Button onClick={submit} disabled={add.isPending}>
+            <Plus className="mr-2 h-4 w-4" /> Add service
+          </Button>
         </div>
       </Card>
 
@@ -673,9 +1167,20 @@ function ServicesSection() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Skeleton className="h-8 w-full" />
+                </TableCell>
+              </TableRow>
             ) : (data ?? []).length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="py-16 text-center text-muted-foreground">No service records yet</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="py-16 text-center text-muted-foreground"
+                >
+                  No service records yet
+                </TableCell>
+              </TableRow>
             ) : (
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
@@ -704,10 +1209,28 @@ function TyreViewSection() {
   const [selected, setSelected] = useState<Tyre | null>(null);
   const [editingDetails, setEditingDetails] = useState(false);
   const [replacementOpen, setReplacementOpen] = useState(false);
-  const [replacement, setReplacement] = useState({ event_date: new Date().toISOString().slice(0, 10), km_reading: "0", tyre_type: "New", source: "Existing", amount: "0", serial_no: "", remark: "" });
+  const [replacement, setReplacement] = useState({
+    event_date: new Date().toISOString().slice(0, 10),
+    km_reading: "0",
+    tyre_type: "New",
+    source: "Existing",
+    amount: "0",
+    serial_no: "",
+    remark: "",
+  });
   const [showAddVehicle, setShowAddVehicle] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({ vehicle_number: "", wheels: "6", odometer: "0" });
-  const [draft, setDraft] = useState({ brand: "", serial_no: "", current_km: "", cost: "", remark: "" });
+  const [newVehicle, setNewVehicle] = useState({
+    vehicle_number: "",
+    wheels: "6",
+    odometer: "0",
+  });
+  const [draft, setDraft] = useState({
+    brand: "",
+    serial_no: "",
+    current_km: "",
+    cost: "",
+    remark: "",
+  });
   const vehicle = vehicles.find((v) => v.id === (vehicleId || vehicles[0]?.id));
   const { data: tyres = [], isLoading: loadingTyres } = useTyres(vehicle?.id);
   const provision = useProvisionTyres();
@@ -719,36 +1242,69 @@ function TyreViewSection() {
   const axleGroups = useMemo(() => {
     const groups = new Map<string, Tyre[]>();
     for (const tyre of tyres) {
-      const label = tyre.axle_label ?? `AXLE ${parseInt(tyre.position_code, 10) || 0}`;
+      const label =
+        tyre.axle_label ?? `AXLE ${parseInt(tyre.position_code, 10) || 0}`;
       groups.set(label, [...(groups.get(label) ?? []), tyre]);
     }
-    return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+    return [...groups.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0], undefined, { numeric: true }),
+    );
   }, [tyres]);
 
   const missingCount = useMemo(() => {
     if (!vehicle || showAddVehicle) return 0;
     const present = new Set(tyres.map((t) => t.position_code));
-    return tyrePositions(vehicle.wheels).filter((p) => !present.has(p.pos)).length;
+    return tyrePositions(vehicle.wheels).filter((p) => !present.has(p.pos))
+      .length;
   }, [vehicle, showAddVehicle, tyres]);
 
   // While adding a vehicle, show the selected wheel layout immediately as a preview.
   const displayGroups = useMemo(() => {
     if (!showAddVehicle) {
       const actual = new Map(tyres.map((t) => [t.position_code, t]));
-      const all = tyrePositions(vehicle?.wheels ?? 0).map((p, i) => actual.get(p.pos) ?? ({
-        id: `missing-${i}`, position_code: p.pos, axle_label: p.axle, current_km: 0,
-        tyre_type: "New", brand: null, serial_no: null, cost: 0, remark: null,
-      } as Tyre));
+      const all = tyrePositions(vehicle?.wheels ?? 0).map(
+        (p, i) =>
+          actual.get(p.pos) ??
+          ({
+            id: `missing-${i}`,
+            position_code: p.pos,
+            axle_label: p.axle,
+            current_km: 0,
+            tyre_type: "New",
+            brand: null,
+            serial_no: null,
+            cost: 0,
+            remark: null,
+          } as Tyre),
+      );
       const groups = new Map<string, Tyre[]>();
-      for (const tyre of all) groups.set(tyre.axle_label ?? "", [...(groups.get(tyre.axle_label ?? "") ?? []), tyre]);
+      for (const tyre of all)
+        groups.set(tyre.axle_label ?? "", [
+          ...(groups.get(tyre.axle_label ?? "") ?? []),
+          tyre,
+        ]);
       return [...groups.entries()];
     }
-    const preview = tyrePositions(Number(newVehicle.wheels)).map((p, i) => ({
-      id: `preview-${i}`, position_code: p.pos, axle_label: p.axle, current_km: 0,
-      tyre_type: "New", brand: null, serial_no: null, cost: 0, remark: null,
-    }) as Tyre);
+    const preview = tyrePositions(Number(newVehicle.wheels)).map(
+      (p, i) =>
+        ({
+          id: `preview-${i}`,
+          position_code: p.pos,
+          axle_label: p.axle,
+          current_km: 0,
+          tyre_type: "New",
+          brand: null,
+          serial_no: null,
+          cost: 0,
+          remark: null,
+        }) as Tyre,
+    );
     const groups = new Map<string, Tyre[]>();
-    for (const tyre of preview) groups.set(tyre.axle_label ?? "", [...(groups.get(tyre.axle_label ?? "") ?? []), tyre]);
+    for (const tyre of preview)
+      groups.set(tyre.axle_label ?? "", [
+        ...(groups.get(tyre.axle_label ?? "") ?? []),
+        tyre,
+      ]);
     return [...groups.entries()];
   }, [showAddVehicle, newVehicle.wheels, axleGroups]);
 
@@ -760,70 +1316,161 @@ function TyreViewSection() {
   function selectTyre(tyre: Tyre) {
     setSelected(tyre);
     setEditingDetails(false);
-    setDraft({ brand: tyre.brand ?? "", serial_no: tyre.serial_no ?? "", current_km: String(tyre.current_km ?? 0), cost: String(tyre.cost ?? 0), remark: tyre.remark ?? "" });
+    setDraft({
+      brand: tyre.brand ?? "",
+      serial_no: tyre.serial_no ?? "",
+      current_km: String(tyre.current_km ?? 0),
+      cost: String(tyre.cost ?? 0),
+      remark: tyre.remark ?? "",
+    });
   }
 
   async function createPositions() {
     if (!vehicle) return;
     try {
       const count = await provision.mutateAsync(vehicle);
-      toast.success(count ? `${count} tyre positions created` : "All tyre positions already exist");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not create tyre positions"); }
+      toast.success(
+        count
+          ? `${count} tyre positions created`
+          : "All tyre positions already exist",
+      );
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not create tyre positions",
+      );
+    }
   }
 
   async function setSingleExistingTyre() {
     if (!vehicle || !selected?.id.startsWith("missing-")) return;
     try {
-      await setExisting.mutateAsync({ vehicleId: vehicle.id, positionCode: selected.position_code, axleLabel: selected.axle_label });
+      await setExisting.mutateAsync({
+        vehicleId: vehicle.id,
+        positionCode: selected.position_code,
+        axleLabel: selected.axle_label,
+      });
       toast.success(`Tyre position ${selected.position_code} added`);
       setSelected(null);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not set tyre position"); }
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not set tyre position",
+      );
+    }
   }
 
   async function saveSelected() {
     if (!selected) return;
     try {
-      await save.mutateAsync({ id: selected.id, brand: draft.brand || null, serial_no: draft.serial_no || null, current_km: Number(draft.current_km) || 0, cost: Number(draft.cost) || 0, remark: draft.remark || null });
+      await save.mutateAsync({
+        id: selected.id,
+        brand: draft.brand || null,
+        serial_no: draft.serial_no || null,
+        current_km: Number(draft.current_km) || 0,
+        cost: Number(draft.cost) || 0,
+        remark: draft.remark || null,
+      });
       toast.success(`Tyre ${selected.position_code} updated`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not update tyre"); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update tyre");
+    }
   }
 
   async function replaceSelected() {
     if (!selected) return;
     try {
-      await save.mutateAsync({ id: selected.id, tyre_type: replacement.tyre_type, serial_no: replacement.serial_no || null, fitted_on: replacement.event_date, fitted_km: Number(replacement.km_reading) || 0, current_km: 0, cost: Number(replacement.amount) || 0, status: "running", remark: replacement.remark || null });
-      await addEvent.mutateAsync({ tyre_id: selected.id, event_date: replacement.event_date, event_type: "replaced", km_reading: Number(replacement.km_reading) || 0, cost: Number(replacement.amount) || 0, note: replacement.remark || "Tyre replaced" });
+      await save.mutateAsync({
+        id: selected.id,
+        tyre_type: replacement.tyre_type,
+        serial_no: replacement.serial_no || null,
+        fitted_on: replacement.event_date,
+        fitted_km: Number(replacement.km_reading) || 0,
+        current_km: 0,
+        cost: Number(replacement.amount) || 0,
+        status: "running",
+        remark: replacement.remark || null,
+      });
+      await addEvent.mutateAsync({
+        tyre_id: selected.id,
+        event_date: replacement.event_date,
+        event_type: "replaced",
+        km_reading: Number(replacement.km_reading) || 0,
+        cost: Number(replacement.amount) || 0,
+        note: replacement.remark || "Tyre replaced",
+      });
       toast.success(`Tyre ${selected.position_code} replaced`);
-      setReplacementOpen(false); setSelected(null);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not replace tyre"); }
+      setReplacementOpen(false);
+      setSelected(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not replace tyre");
+    }
   }
 
   async function addNewVehicle() {
     if (!newVehicle.vehicle_number.trim()) return;
     try {
-      const created = await addVehicle.mutateAsync({ vehicle_number: newVehicle.vehicle_number.trim(), wheels: Number(newVehicle.wheels), odometer: Number(newVehicle.odometer) || 0 });
-      setVehicleId(created.id); setShowAddVehicle(false); setNewVehicle({ vehicle_number: "", wheels: "6", odometer: "0" });
+      const created = await addVehicle.mutateAsync({
+        vehicle_number: newVehicle.vehicle_number.trim(),
+        wheels: Number(newVehicle.wheels),
+        odometer: Number(newVehicle.odometer) || 0,
+      });
+      setVehicleId(created.id);
+      setShowAddVehicle(false);
+      setNewVehicle({ vehicle_number: "", wheels: "6", odometer: "0" });
       toast.success("Vehicle added");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not add vehicle"); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not add vehicle");
+    }
   }
 
   const axleBlock = (label: string, list: Tyre[]) => (
     <div key={label} className="p-1">
-      <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
       <div className="space-y-2">
-        {[list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, ""))), list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")))].map((row, i) => (
+        {[
+          list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, ""))),
+          list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, ""))),
+        ].map((row, i) => (
           <div key={i} className="flex justify-center gap-2">
             {row.map((t) => {
-              const hasData = !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
+              const hasData =
+                !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
               const health = tyreHealth(Number(t.current_km));
               const cls = healthClasses[health];
-              return <button key={t.id} type="button" title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`} disabled={t.id.startsWith("preview-")} onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}>
-                <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">{t.position_code}</span>
-                <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">{hasData ? shortKm(Number(t.current_km)) : "N/A"}</span>
-                {hasData && <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">{inr(costPerKm(Number(t.cost), Number(t.current_km)))}</span>}
-                {hasData && <span className={`absolute left-1/2 bottom-7 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`} />}
-                {hasData && <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">{t.tyre_type}</span>}
-              </button>;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`}
+                  disabled={t.id.startsWith("preview-")}
+                  onClick={() => selectTyre(t)}
+                  aria-label={`Tyre ${t.position_code}`}
+                  className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
+                >
+                  <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">
+                    {t.position_code}
+                  </span>
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+                    {hasData ? shortKm(Number(t.current_km)) : "N/A"}
+                  </span>
+                  {hasData && (
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">
+                      {inr(costPerKm(Number(t.cost), Number(t.current_km)))}
+                    </span>
+                  )}
+                  {hasData && (
+                    <span
+                      className={`absolute left-1/2 bottom-7 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`}
+                    />
+                  )}
+                  {hasData && (
+                    <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">
+                      {t.tyre_type}
+                    </span>
+                  )}
+                </button>
+              );
             })}
           </div>
         ))}
@@ -831,21 +1478,481 @@ function TyreViewSection() {
     </div>
   );
 
-  if (loadingVehicles) return <Card><div className="p-10 text-center text-muted-foreground">Loading trucks…</div></Card>;
-  if (!vehicle) return <Card><div className="p-10 text-center text-muted-foreground">No vehicles found.</div></Card>;
+  if (loadingVehicles)
+    return (
+      <Card>
+        <div className="p-10 text-center text-muted-foreground">
+          Loading trucks…
+        </div>
+      </Card>
+    );
+  if (!vehicle)
+    return (
+      <Card>
+        <div className="p-10 text-center text-muted-foreground">
+          No vehicles found.
+        </div>
+      </Card>
+    );
 
-  return <div className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-panel">
-      <div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Truck className="h-5 w-5" /></div><div><h2 className="inline-block border-b-4 border-indigo-400 pb-0.5 text-[22px] font-semibold tracking-[-0.02em]">Truck Tyre View</h2><p className="mt-0.5 text-xs text-muted-foreground">Inspect every wheel position, usage, and replacement history.</p></div></div>
-      <div className="flex flex-wrap gap-2"><Select value={vehicle.id} onValueChange={(v) => { setVehicleId(v); setSelected(null); }}><SelectTrigger className="w-[250px] bg-background"><SelectValue /></SelectTrigger><SelectContent>{vehicles.map((v) => <SelectItem key={v.id} value={v.id}>{v.vehicle_number} · {v.wheels} wheeler</SelectItem>)}</SelectContent></Select><Button variant="outline" className="bg-background" onClick={() => setShowAddVehicle((v) => !v)}><Plus className="mr-2 h-4 w-4" /> Add vehicle</Button></div>
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-panel">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="inline-block border-b-4 border-indigo-400 pb-0.5 text-[22px] font-semibold tracking-[-0.02em]">
+              Truck Tyre View
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Inspect every wheel position, usage, and replacement history.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Select
+            value={vehicle.id}
+            onValueChange={(v) => {
+              setVehicleId(v);
+              setSelected(null);
+            }}
+          >
+            <SelectTrigger className="w-[250px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {vehicles.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.vehicle_number} · {v.wheels} wheeler
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="bg-background"
+            onClick={() => setShowAddVehicle((v) => !v)}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add vehicle
+          </Button>
+        </div>
+      </div>
+      {showAddVehicle && (
+        <Card>
+          <div className="grid gap-3 p-4 sm:grid-cols-3">
+            <Field label="Vehicle number">
+              <Input
+                value={newVehicle.vehicle_number}
+                placeholder="MH12XX0000"
+                onChange={(e) =>
+                  setNewVehicle((v) => ({
+                    ...v,
+                    vehicle_number: e.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label="Wheel configuration">
+              <Select
+                value={newVehicle.wheels}
+                onValueChange={(v) =>
+                  setNewVehicle((f) => ({ ...f, wheels: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WHEEL_CONFIGS.map((w) => (
+                    <SelectItem key={w} value={String(w)}>
+                      {w} wheeler
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Current odometer">
+              <Input
+                type="number"
+                value={newVehicle.odometer}
+                onChange={(e) =>
+                  setNewVehicle((v) => ({ ...v, odometer: e.target.value }))
+                }
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end border-t border-border px-4 py-3">
+            <Button
+              onClick={addNewVehicle}
+              disabled={
+                addVehicle.isPending || !newVehicle.vehicle_number.trim()
+              }
+            >
+              Create vehicle
+            </Button>
+          </div>
+        </Card>
+      )}
+      <div className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-border/70 bg-card px-5 py-3 text-xs shadow-panel">
+        <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 font-medium text-success">
+          <span className="h-3 w-3 rounded-full bg-success" /> Good{" "}
+          <span className="font-normal text-muted-foreground">
+            (&lt;50k km)
+          </span>
+        </span>
+        <span className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 font-medium text-warning-foreground">
+          <span className="h-3 w-3 rounded-full bg-warning" /> Moderate{" "}
+          <span className="font-normal text-muted-foreground">(50–80k km)</span>
+        </span>
+        <span className="flex items-center gap-2 rounded-full bg-destructive/10 px-3 py-1.5 font-medium text-destructive">
+          <span className="h-3 w-3 rounded-full bg-destructive" /> Replace{" "}
+          <span className="font-normal text-muted-foreground">
+            (&gt;80k km)
+          </span>
+        </span>
+      </div>
+      {missingCount > 0 && !showAddVehicle && (
+        <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          <span>
+            <strong>{missingCount} positions have no tyre record</strong>
+            <br />
+            <span className="text-muted-foreground">
+              Set company-fitted tyres that came with the truck, without
+              creating a purchase or expense.
+            </span>
+          </span>
+          <Button onClick={createPositions} disabled={provision.isPending}>
+            <Wand2 className="mr-2 h-4 w-4" /> Set Existing Tyres
+          </Button>
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-border bg-card p-4 shadow-panel">
+        <div className="grid min-w-[1120px] grid-cols-[120px_300px_1fr] items-center gap-3">
+          <div className="space-y-3">
+            {leftAxles.map(([label, list]) => axleBlock(label, list))}
+          </div>
+          <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-gradient-to-r from-zinc-300 via-zinc-400 to-zinc-300 p-4">
+            <span className="text-4xl" role="img" aria-label="truck">
+              🚛
+            </span>
+            <p
+              className="text-center text-xl font-bold tracking-[0.2em] text-zinc-900"
+              style={{ writingMode: "vertical-rl" }}
+            >
+              {showAddVehicle
+                ? newVehicle.vehicle_number || "NEW VEHICLE"
+                : vehicle.vehicle_number}
+            </p>
+            <div className="grid w-full grid-cols-2 gap-3 border-t border-zinc-500/40 pt-2 text-center text-xs text-zinc-800">
+              <div>
+                <span className="text-zinc-700">AXLES</span>
+                <br />
+                <strong className="text-xl">
+                  {(showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan)
+                    .steer +
+                    (showAddVehicle
+                      ? axlePlan(Number(newVehicle.wheels))
+                      : plan
+                    ).rear}
+                </strong>
+              </div>
+              <div>
+                <span className="text-zinc-700">READING</span>
+                <br />
+                <strong className="text-base">
+                  {showAddVehicle
+                    ? "0 km"
+                    : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}
+                </strong>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            {rightAxles.map(([label, list]) => axleBlock(label, list))}
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          {showAddVehicle
+            ? "Preview of the selected wheel configuration — create the vehicle to save it"
+            : "Click on any tyre to view detailed information"}
+        </p>
+      </div>
+      {selected && !replacementOpen && (
+        <div
+          role="dialog"
+          aria-label={`Tyre ${selected.position_code} details`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]"
+        >
+          <div className="w-full max-w-[520px] rounded-2xl border border-border bg-card p-6 shadow-lift">
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h3 className="text-2xl font-bold">{selected.position_code}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {selected.axle_label || "Truck tyre"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${tyreHealth(Number(selected.current_km)) === "Replace" ? "bg-destructive text-destructive-foreground" : tyreHealth(Number(selected.current_km)) === "Moderate" ? "bg-warning text-warning-foreground" : "bg-success text-success-foreground"}`}
+                >
+                  {tyreHealth(Number(selected.current_km)) === "Replace"
+                    ? "Replace Soon"
+                    : tyreHealth(Number(selected.current_km))}
+                </span>
+                <Button variant="outline" onClick={() => setSelected(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+            {selected.id.startsWith("missing-") ? (
+              <div className="space-y-5">
+                <p className="text-sm text-muted-foreground">
+                  No tyre data available for this wheel position.
+                </p>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={setSingleExistingTyre}
+                    disabled={setExisting.isPending}
+                  >
+                    Set Existing Tyre
+                  </Button>
+                </div>
+              </div>
+            ) : !editingDetails ? (
+              <>
+                <div className="mb-4 rounded-lg bg-destructive/10 p-4">
+                  <p className="text-xs text-muted-foreground">Tyre Type</p>
+                  <p className="mt-1 text-xl font-bold text-destructive">
+                    🆕 {selected.tyre_type} Tyre
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <StatCell
+                    label="Installed On"
+                    value={selected.fitted_on || "—"}
+                  />
+                  <StatCell
+                    label="At KM Reading"
+                    value={Number(selected.fitted_km ?? 0).toLocaleString(
+                      "en-IN",
+                    )}
+                  />
+                  <StatCell
+                    label="Current Vehicle KM"
+                    value={Number(selected.current_km).toLocaleString("en-IN")}
+                  />
+                  <StatCell
+                    label="Tyre Usage"
+                    value={`${Number(selected.current_km).toLocaleString("en-IN")} km`}
+                  />
+                  <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Installation Cost
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-primary">
+                      {inr(Number(selected.cost))}
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <StatCell
+                      label="Part / Serial Number"
+                      value={selected.serial_no || "—"}
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingDetails(true)}
+                  >
+                    Edit Details
+                  </Button>
+                  <Button onClick={() => setReplacementOpen(true)}>
+                    Replace Tyre
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Brand">
+                    <Input
+                      value={draft.brand}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, brand: e.target.value }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Serial No">
+                    <Input
+                      value={draft.serial_no}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, serial_no: e.target.value }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Current KM">
+                    <Input
+                      type="number"
+                      value={draft.current_km}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, current_km: e.target.value }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Cost">
+                    <Input
+                      type="number"
+                      value={draft.cost}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, cost: e.target.value }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Remark">
+                    <Input
+                      value={draft.remark}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, remark: e.target.value }))
+                      }
+                    />
+                  </Field>
+                </div>
+                <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingDetails(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={saveSelected} disabled={save.isPending}>
+                    Save Tyre
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {replacementOpen && selected && (
+        <div
+          role="dialog"
+          aria-label="Replace Tyre"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
+        >
+          <div className="w-full max-w-[560px] rounded-2xl border border-border bg-card p-6 shadow-lift">
+            <div className="mb-5">
+              <h3 className="text-xl font-bold">Replace Tyre</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {vehicle.vehicle_number} · Position {selected.position_code}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Date">
+                <Input
+                  type="date"
+                  value={replacement.event_date}
+                  onChange={(e) =>
+                    setReplacement((r) => ({
+                      ...r,
+                      event_date: e.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="KM Reading">
+                <Input
+                  type="number"
+                  value={replacement.km_reading}
+                  onChange={(e) =>
+                    setReplacement((r) => ({
+                      ...r,
+                      km_reading: e.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label="Tyre Placement">
+                <Input value={`${selected.axle_label || "Axle"} · Position ${selected.position_code}`} disabled />
+              </Field>
+              <Field label="Tyre Type">
+                <Select
+                  value={replacement.tyre_type}
+                  onValueChange={(v) =>
+                    setReplacement((r) => ({ ...r, tyre_type: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="New">New</SelectItem>
+                    <SelectItem value="Remould">Remould</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Tyre Source">
+                <Select
+                  value={replacement.source}
+                  onValueChange={(v) => setReplacement((r) => ({ ...r, source: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Existing">Existing (came with truck)</SelectItem>
+                    <SelectItem value="From Warehouse">From Warehouse</SelectItem>
+                    <SelectItem value="Direct Purchase">Direct Purchase</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Amount">
+                <Input
+                  type="number"
+                  value={replacement.amount}
+                  onChange={(e) =>
+                    setReplacement((r) => ({ ...r, amount: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Part / Serial Number">
+                <Input
+                  value={replacement.serial_no}
+                  placeholder="Enter part number"
+                  onChange={(e) =>
+                    setReplacement((r) => ({ ...r, serial_no: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Remark">
+                <Input
+                  value={replacement.remark}
+                  placeholder="Enter remark"
+                  onChange={(e) =>
+                    setReplacement((r) => ({ ...r, remark: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setReplacementOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={replaceSelected}
+                disabled={save.isPending || addEvent.isPending}
+              >
+                Save Tyre
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-    {showAddVehicle && <Card><div className="grid gap-3 p-4 sm:grid-cols-3"><Field label="Vehicle number"><Input value={newVehicle.vehicle_number} placeholder="MH12XX0000" onChange={(e) => setNewVehicle((v) => ({ ...v, vehicle_number: e.target.value }))} /></Field><Field label="Wheel configuration"><Select value={newVehicle.wheels} onValueChange={(v) => setNewVehicle((f) => ({ ...f, wheels: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{WHEEL_CONFIGS.map((w) => <SelectItem key={w} value={String(w)}>{w} wheeler</SelectItem>)}</SelectContent></Select></Field><Field label="Current odometer"><Input type="number" value={newVehicle.odometer} onChange={(e) => setNewVehicle((v) => ({ ...v, odometer: e.target.value }))} /></Field></div><div className="flex justify-end border-t border-border px-4 py-3"><Button onClick={addNewVehicle} disabled={addVehicle.isPending || !newVehicle.vehicle_number.trim()}>Create vehicle</Button></div></Card>}
-    <div className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-border/70 bg-card px-5 py-3 text-xs shadow-panel"><span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 font-medium text-success"><span className="h-3 w-3 rounded-full bg-success" /> Good <span className="font-normal text-muted-foreground">(&lt;50k km)</span></span><span className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 font-medium text-warning-foreground"><span className="h-3 w-3 rounded-full bg-warning" /> Moderate <span className="font-normal text-muted-foreground">(50–80k km)</span></span><span className="flex items-center gap-2 rounded-full bg-destructive/10 px-3 py-1.5 font-medium text-destructive"><span className="h-3 w-3 rounded-full bg-destructive" /> Replace <span className="font-normal text-muted-foreground">(&gt;80k km)</span></span></div>
-    {missingCount > 0 && !showAddVehicle && <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm"><span><strong>{missingCount} positions have no tyre record</strong><br /><span className="text-muted-foreground">Set company-fitted tyres that came with the truck, without creating a purchase or expense.</span></span><Button onClick={createPositions} disabled={provision.isPending}><Wand2 className="mr-2 h-4 w-4" /> Set Existing Tyres</Button></div>}
-    <div className="overflow-x-auto rounded-lg border border-border bg-card p-4 shadow-panel"><div className="grid min-w-[1120px] grid-cols-[120px_300px_1fr] items-center gap-3"><div className="space-y-3">{leftAxles.map(([label, list]) => axleBlock(label, list))}</div><div className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-gradient-to-r from-zinc-300 via-zinc-400 to-zinc-300 p-4"><span className="text-4xl" role="img" aria-label="truck">🚛</span><p className="text-center text-xl font-bold tracking-[0.2em] text-zinc-900" style={{ writingMode: "vertical-rl" }}>{showAddVehicle ? (newVehicle.vehicle_number || "NEW VEHICLE") : vehicle.vehicle_number}</p><div className="grid w-full grid-cols-2 gap-3 border-t border-zinc-500/40 pt-2 text-center text-xs text-zinc-800"><div><span className="text-zinc-700">AXLES</span><br /><strong className="text-xl">{(showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan).steer + (showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan).rear}</strong></div><div><span className="text-zinc-700">READING</span><br /><strong className="text-base">{showAddVehicle ? "0 km" : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}</strong></div></div></div><div className="flex gap-3">{rightAxles.map(([label, list]) => axleBlock(label, list))}</div></div><p className="mt-4 text-center text-xs text-muted-foreground">{showAddVehicle ? "Preview of the selected wheel configuration — create the vehicle to save it" : "Click on any tyre to view detailed information"}</p></div>
-    {selected && <div role="dialog" aria-label={`Tyre ${selected.position_code} details`} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]"><div className="w-full max-w-[520px] rounded-2xl border border-border bg-card p-6 shadow-lift"><div className="mb-5 flex items-start justify-between"><div><h3 className="text-2xl font-bold">{selected.position_code}</h3><p className="mt-1 text-sm text-muted-foreground">{selected.axle_label || "Truck tyre"}</p></div><div className="flex items-center gap-2"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${tyreHealth(Number(selected.current_km)) === "Replace" ? "bg-destructive text-destructive-foreground" : tyreHealth(Number(selected.current_km)) === "Moderate" ? "bg-warning text-warning-foreground" : "bg-success text-success-foreground"}`}>{tyreHealth(Number(selected.current_km)) === "Replace" ? "Replace Soon" : tyreHealth(Number(selected.current_km))}</span><Button variant="outline" onClick={() => setSelected(null)}>Close</Button></div></div>{selected.id.startsWith("missing-") ? <div className="space-y-5"><p className="text-sm text-muted-foreground">No tyre data available for this wheel position.</p><div className="flex justify-end"><Button onClick={setSingleExistingTyre} disabled={setExisting.isPending}>Set Existing Tyre</Button></div></div> : !editingDetails ? <><div className="mb-4 rounded-lg bg-destructive/10 p-4"><p className="text-xs text-muted-foreground">Tyre Type</p><p className="mt-1 text-xl font-bold text-destructive">🆕 {selected.tyre_type} Tyre</p></div><div className="grid gap-3 sm:grid-cols-2"><StatCell label="Installed On" value={selected.fitted_on || "—"} /><StatCell label="At KM Reading" value={Number(selected.fitted_km ?? 0).toLocaleString("en-IN")} /><StatCell label="Current Vehicle KM" value={Number(selected.current_km).toLocaleString("en-IN")} /><StatCell label="Tyre Usage" value={`${Number(selected.current_km).toLocaleString("en-IN")} km`} /><div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">Installation Cost</p><p className="mt-1 text-xl font-bold text-primary">{inr(Number(selected.cost))}</p></div><div className="sm:col-span-2"><StatCell label="Part / Serial Number" value={selected.serial_no || "—"} /></div></div><div className="mt-6 flex justify-end gap-2 border-t border-border pt-4"><Button variant="outline" onClick={() => setEditingDetails(true)}>Edit Details</Button><Button onClick={() => setReplacementOpen(true)}>Replace Tyre</Button></div></> : <><div className="grid gap-3 sm:grid-cols-2"><Field label="Brand"><Input value={draft.brand} onChange={(e) => setDraft((d) => ({ ...d, brand: e.target.value }))} /></Field><Field label="Serial No"><Input value={draft.serial_no} onChange={(e) => setDraft((d) => ({ ...d, serial_no: e.target.value }))} /></Field><Field label="Current KM"><Input type="number" value={draft.current_km} onChange={(e) => setDraft((d) => ({ ...d, current_km: e.target.value }))} /></Field><Field label="Cost"><Input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: e.target.value }))} /></Field><Field label="Remark"><Input value={draft.remark} onChange={(e) => setDraft((d) => ({ ...d, remark: e.target.value }))} /></Field></div><div className="mt-6 flex justify-end gap-2 border-t border-border pt-4"><Button variant="outline" onClick={() => setEditingDetails(false)}>Cancel</Button><Button onClick={saveSelected} disabled={save.isPending}>Save Tyre</Button></div></>}</div></div>}
-    {replacementOpen && selected && <div role="dialog" aria-label="Replace Tyre" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div className="w-full max-w-[560px] rounded-2xl border border-border bg-card p-6 shadow-lift"><div className="mb-5"><h3 className="text-xl font-bold">Replace Tyre</h3><p className="mt-1 text-sm text-muted-foreground">{vehicle.vehicle_number} · Position {selected.position_code}</p></div><div className="grid gap-3 sm:grid-cols-2"><Field label="Date"><Input type="date" value={replacement.event_date} onChange={(e) => setReplacement((r) => ({ ...r, event_date: e.target.value }))} /></Field><Field label="KM Reading"><Input type="number" value={replacement.km_reading} onChange={(e) => setReplacement((r) => ({ ...r, km_reading: e.target.value }))} /></Field><Field label="Tyre Type"><Select value={replacement.tyre_type} onValueChange={(v) => setReplacement((r) => ({ ...r, tyre_type: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="New">New</SelectItem><SelectItem value="Remould">Remould</SelectItem></SelectContent></Select></Field><Field label="Amount"><Input type="number" value={replacement.amount} onChange={(e) => setReplacement((r) => ({ ...r, amount: e.target.value }))} /></Field><Field label="Part / Serial Number"><Input value={replacement.serial_no} placeholder="Enter part number" onChange={(e) => setReplacement((r) => ({ ...r, serial_no: e.target.value }))} /></Field><Field label="Remark"><Input value={replacement.remark} placeholder="Enter remark" onChange={(e) => setReplacement((r) => ({ ...r, remark: e.target.value }))} /></Field></div><div className="mt-6 flex justify-end gap-2 border-t border-border pt-4"><Button variant="outline" onClick={() => setReplacementOpen(false)}>Cancel</Button><Button onClick={replaceSelected} disabled={save.isPending || addEvent.isPending}>Save Tyre</Button></div></div></div>}
-  </div>;
+  );
 }
 
 const TABS = [
@@ -865,7 +1972,17 @@ export function TyreModule() {
   return (
     <AppShell>
       <div className="space-y-4">
-        {tab !== "view" && <div className="rounded-md bg-card px-5 py-4 shadow-panel"><h1 className="text-[22px] font-semibold tracking-[-0.02em] text-foreground">Tyre Management</h1><p className="mt-1 text-xs text-muted-foreground">Purchase, fitment, excavator teeth, and service records for the fleet.</p></div>}
+        {tab !== "view" && (
+          <div className="rounded-md bg-card px-5 py-4 shadow-panel">
+            <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-foreground">
+              Tyre Management
+            </h1>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Purchase, fitment, excavator teeth, and service records for the
+              fleet.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1.5 shadow-sm">
           {TABS.map((t) => {
@@ -876,7 +1993,9 @@ export function TyreModule() {
                 type="button"
                 onClick={() => setTab(t.key)}
                 className={`flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${
-                    tab === t.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  tab === t.key
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 <Icon className="h-4 w-4" />
