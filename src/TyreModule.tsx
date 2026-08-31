@@ -316,6 +316,7 @@ function TyreFitmentSection() {
     old_tyre_status: "NEW",
     old_tyre_stock: "",
   });
+  const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
 
   async function submit() {
     try {
@@ -400,13 +401,19 @@ function TyreFitmentSection() {
               }
             />
           </Field>
-          <Field label="Tyre place">
-            <Input
-              value={form.tyre_place}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, tyre_place: e.target.value }))
-              }
-            />
+          <Field label="Tyre place / wheel position">
+            <Select
+              value={form.tyre_place || "none"}
+              onValueChange={(v) => setForm((f) => ({ ...f, tyre_place: v === "none" ? "" : v }))}
+            >
+              <SelectTrigger><SelectValue placeholder="Select wheel position" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Select position —</SelectItem>
+                {(selectedVehicle ? tyrePositions(selectedVehicle.wheels) : []).map((p) => (
+                  <SelectItem key={p.pos} value={p.pos}>{p.pos} · {p.axle}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="KM">
             <Input

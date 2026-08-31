@@ -72,10 +72,52 @@ export function useAddTyreFitment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: TablesInsert<"tyre_fitment">) => {
-      const { error } = await supabase.from("tyre_fitment").insert(row);
+      const { data: fitment, error } = await supabase
+        .from("tyre_fitment")
+        .insert(row)
+        .select()
+        .single();
       if (error) throw error;
+      const position = row.tyre_place?.trim().toUpperCase() ?? "";
+      if (row.vehicle_id && /^\d+(R|L|RI|RO|LI|LO)$/.test(position)) {
+        const { data: tyre, error: tyreError } = await supabase
+          .from("tyres")
+          .upsert(
+            {
+              vehicle_id: row.vehicle_id,
+              position_code: position,
+              axle_label: `AXLE ${parseInt(position, 10)}`,
+              brand: row.brand ?? null,
+              serial_no: row.tyre_no ?? null,
+              current_km: 0,
+              fitted_km: row.km ?? 0,
+              fitted_on: row.entry_date ?? null,
+              tyre_type: "New",
+              status: "running",
+              remark: row.remarks ?? null,
+            },
+            { onConflict: "vehicle_id,position_code" },
+          )
+          .select("id")
+          .single();
+        if (tyreError) throw tyreError;
+        const { error: eventError } = await supabase.from("tyre_events").insert({
+          tyre_id: tyre.id,
+          event_date: row.entry_date ?? new Date().toISOString().slice(0, 10),
+          event_type: "fitted",
+          km_reading: row.km ?? 0,
+          cost: 0,
+          note: "Fitment recorded",
+        });
+        if (eventError) throw eventError;
+      }
+      return fitment;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tyre-fitment"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tyre-fitment"] });
+      qc.invalidateQueries({ queryKey: ["tyres"] });
+      qc.invalidateQueries({ queryKey: ["tyre-events"] });
+    },
   });
 }
 
