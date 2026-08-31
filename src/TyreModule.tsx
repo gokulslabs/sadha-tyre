@@ -155,6 +155,10 @@ function TyreInventorySection() {
   });
 
   async function submit() {
+    if (!form.brand.trim() || !form.tyre_no.trim() || !form.tyre_size.trim() || Number(form.quantity) <= 0) {
+      toast.error("Enter brand, tyre number, tyre size, and a quantity greater than zero");
+      return;
+    }
     try {
       await add.mutateAsync({
         entry_type: form.entry_type,
@@ -319,6 +323,10 @@ function TyreFitmentSection() {
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
 
   async function submit() {
+    if (!form.vehicle_id || !form.tyre_place || Number(form.km) < 0) {
+      toast.error("Select a vehicle and wheel position, then enter a valid KM reading");
+      return;
+    }
     try {
       await add.mutateAsync({
         entry_date: form.entry_date,
@@ -542,6 +550,10 @@ function TeethPurchaseSection() {
   });
 
   async function submit() {
+    if (!form.purchase_shop.trim() || !form.teeth_model.trim() || Number(form.qty) <= 0) {
+      toast.error("Enter purchase shop, teeth model, and a quantity greater than zero");
+      return;
+    }
     try {
       await add.mutateAsync({
         entry_date: form.entry_date,
@@ -735,6 +747,10 @@ function TeethFitmentSection() {
   });
 
   async function submit() {
+    if (!form.vehicle_id || Number(form.new_teeth_qty) <= 0) {
+      toast.error("Select a vehicle and enter a teeth quantity greater than zero");
+      return;
+    }
     try {
       await add.mutateAsync({
         entry_date: form.entry_date,
@@ -1066,6 +1082,10 @@ function ServicesSection() {
   });
 
   async function submit() {
+    if (!form.vehicle_id || !form.particular.trim() || Number(form.to_km) < Number(form.from_km)) {
+      toast.error("Select a vehicle, enter the service, and ensure To KM is not below From KM");
+      return;
+    }
     try {
       await add.mutateAsync({
         entry_date: form.entry_date,
