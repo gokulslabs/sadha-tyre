@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVehicles, useTyres, useProvisionTyres, useSaveTyre, useAddVehicle, type Tyre } from "@/hooks/useTyres";
-import { axlePlan, healthClasses, shortKm, tyreHealth, costPerKm, inr, WHEEL_CONFIGS } from "@/lib/tyres";
+import { axlePlan, healthClasses, shortKm, tyreHealth, costPerKm, inr, WHEEL_CONFIGS, tyrePositions } from "@/lib/tyres";
 import {
   AUDIT_TABLE_LABELS,
   OLD_TYRE_STATUSES,
@@ -716,9 +716,21 @@ function TyreViewSection() {
     return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
   }, [tyres]);
 
+  // While adding a vehicle, show the selected wheel layout immediately as a preview.
+  const displayGroups = useMemo(() => {
+    if (!showAddVehicle) return axleGroups;
+    const preview = tyrePositions(Number(newVehicle.wheels)).map((p, i) => ({
+      id: `preview-${i}`, position_code: p.pos, axle_label: p.axle, current_km: 0,
+      tyre_type: "New", brand: null, serial_no: null, cost: 0, remark: null,
+    }) as Tyre);
+    const groups = new Map<string, Tyre[]>();
+    for (const tyre of preview) groups.set(tyre.axle_label ?? "", [...(groups.get(tyre.axle_label ?? "") ?? []), tyre]);
+    return [...groups.entries()];
+  }, [showAddVehicle, newVehicle.wheels, axleGroups]);
+
   const plan = vehicle ? axlePlan(vehicle.wheels) : { steer: 0, rear: 0 };
-  const leftAxles = axleGroups.slice(0, Math.ceil(axleGroups.length / 2));
-  const rightAxles = axleGroups.slice(Math.ceil(axleGroups.length / 2));
+  const leftAxles = displayGroups.slice(0, Math.ceil(displayGroups.length / 2));
+  const rightAxles = displayGroups.slice(Math.ceil(displayGroups.length / 2));
 
   function selectTyre(tyre: Tyre) {
     setSelected(tyre);
@@ -759,7 +771,7 @@ function TyreViewSection() {
             {row.map((t) => {
               const health = tyreHealth(Number(t.current_km));
               const cls = healthClasses[health];
-              return <button key={t.id} type="button" onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[76px] w-[76px] rounded-full bg-card ring-2 transition hover:scale-105 ${cls.ring} ${selected?.id === t.id ? "ring-4 ring-primary" : ""}`}>
+              return <button key={t.id} type="button" disabled={t.id.startsWith("preview-")} onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[76px] w-[76px] rounded-full bg-card ring-2 transition hover:scale-105 ${cls.ring} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}>
                 <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">{t.position_code}</span>
                 <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">{shortKm(Number(t.current_km))}</span>
                 <span className={`absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${cls.dot}`} />
@@ -782,8 +794,8 @@ function TyreViewSection() {
     </div>
     {showAddVehicle && <Card><div className="grid gap-3 p-4 sm:grid-cols-3"><Field label="Vehicle number"><Input value={newVehicle.vehicle_number} placeholder="MH12XX0000" onChange={(e) => setNewVehicle((v) => ({ ...v, vehicle_number: e.target.value }))} /></Field><Field label="Wheel configuration"><Select value={newVehicle.wheels} onValueChange={(v) => setNewVehicle((f) => ({ ...f, wheels: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{WHEEL_CONFIGS.map((w) => <SelectItem key={w} value={String(w)}>{w} wheeler</SelectItem>)}</SelectContent></Select></Field><Field label="Current odometer"><Input type="number" value={newVehicle.odometer} onChange={(e) => setNewVehicle((v) => ({ ...v, odometer: e.target.value }))} /></Field></div><div className="flex justify-end border-t border-border px-4 py-3"><Button onClick={addNewVehicle} disabled={addVehicle.isPending || !newVehicle.vehicle_number.trim()}>Create vehicle</Button></div></Card>}
     <div className="flex flex-wrap items-center justify-center gap-8 rounded-md bg-card px-5 py-3 text-xs shadow-panel"><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-success" /> Good (&lt;50k km)</span><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-warning" /> Moderate (50–80k km)</span><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-destructive" /> Replace (&gt;80k km)</span></div>
-    {axleGroups.length === 0 && <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm"><span><strong>{vehicle.wheels} positions have no tyre record</strong><br /><span className="text-muted-foreground">Set company-fitted tyres without creating a purchase or expense.</span></span><Button onClick={createPositions} disabled={provision.isPending}><Wand2 className="mr-2 h-4 w-4" /> Set Existing Tyres</Button></div>}
-    <div className="rounded-lg border border-border bg-card p-4 shadow-panel"><div className="grid min-w-[820px] grid-cols-[1fr_190px_1fr] items-center gap-4 overflow-x-auto"><div className="space-y-3">{leftAxles.map(([label, list]) => axleBlock(label, list))}</div><div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-muted/20 p-4"><Truck className="h-10 w-10 text-muted-foreground" /><p className="text-center text-lg font-bold tracking-widest" style={{ writingMode: "vertical-rl" }}>{vehicle.vehicle_number}</p><div className="mt-auto grid w-full gap-2 text-center text-xs"><div><span className="text-muted-foreground">AXLES</span><br /><strong className="text-xl">{plan.steer + plan.rear}</strong></div><div><span className="text-muted-foreground">READING</span><br /><strong className="text-xl">{Number(vehicle.odometer).toLocaleString("en-IN")} km</strong></div></div></div><div className="space-y-3">{rightAxles.map(([label, list]) => axleBlock(label, list))}</div></div><p className="mt-4 text-center text-xs text-muted-foreground">Click on any tyre to view detailed information</p></div>
+    {axleGroups.length === 0 && !showAddVehicle && <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm"><span><strong>{vehicle.wheels} positions have no tyre record</strong><br /><span className="text-muted-foreground">Set company-fitted tyres without creating a purchase or expense.</span></span><Button onClick={createPositions} disabled={provision.isPending}><Wand2 className="mr-2 h-4 w-4" /> Set Existing Tyres</Button></div>}
+    <div className="rounded-lg border border-border bg-card p-4 shadow-panel"><div className="grid min-w-[820px] grid-cols-[1fr_190px_1fr] items-center gap-4 overflow-x-auto"><div className="space-y-3">{leftAxles.map(([label, list]) => axleBlock(label, list))}</div><div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-muted/20 p-4"><Truck className="h-10 w-10 text-muted-foreground" /><p className="text-center text-lg font-bold tracking-widest" style={{ writingMode: "vertical-rl" }}>{showAddVehicle ? (newVehicle.vehicle_number || "NEW VEHICLE") : vehicle.vehicle_number}</p><div className="mt-auto grid w-full gap-2 text-center text-xs"><div><span className="text-muted-foreground">AXLES</span><br /><strong className="text-xl">{(showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan).steer + (showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan).rear}</strong></div><div><span className="text-muted-foreground">WHEELS</span><br /><strong className="text-xl">{showAddVehicle ? newVehicle.wheels : vehicle.wheels}</strong></div></div></div><div className="space-y-3">{rightAxles.map(([label, list]) => axleBlock(label, list))}</div></div><p className="mt-4 text-center text-xs text-muted-foreground">{showAddVehicle ? "Preview of the selected wheel configuration — create the vehicle to save it" : "Click on any tyre to view detailed information"}</p></div>
     {selected && <div className="rounded-md bg-card p-5 shadow-panel"><div className="mb-4 flex items-center justify-between"><h3 className="text-base font-semibold">Tyre {selected.position_code} details</h3><span className="text-sm text-muted-foreground">{tyreHealth(Number(selected.current_km))}</span></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Field label="Brand"><Input value={draft.brand} onChange={(e) => setDraft((d) => ({ ...d, brand: e.target.value }))} /></Field><Field label="Serial No"><Input value={draft.serial_no} onChange={(e) => setDraft((d) => ({ ...d, serial_no: e.target.value }))} /></Field><Field label="Current KM"><Input type="number" value={draft.current_km} onChange={(e) => setDraft((d) => ({ ...d, current_km: e.target.value }))} /></Field><Field label="Cost"><Input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: e.target.value }))} /></Field><Field label="Cost per KM"><div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm">{inr(costPerKm(Number(draft.cost), Number(draft.current_km)))}</div></Field><Field label="Remark"><Input value={draft.remark} onChange={(e) => setDraft((d) => ({ ...d, remark: e.target.value }))} /></Field></div><div className="mt-4 flex justify-end"><Button onClick={saveSelected} disabled={save.isPending}>Save Tyre</Button></div></div>}
   </div>;
 }
