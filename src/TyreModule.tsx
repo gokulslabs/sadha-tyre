@@ -164,11 +164,11 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TableToolbar({ query, onQueryChange, total, shown }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number }) {
+function TableToolbar({ query, onQueryChange, total, shown, page = 1, pages = 1, onPageChange }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number; page?: number; pages?: number; onPageChange?: (page: number) => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/70 bg-card px-3 py-2">
       <Input className="h-9 max-w-sm" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search records…" aria-label="Search records" />
-      <span className="text-xs text-muted-foreground">Showing {shown} of {total}</span>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>Showing {shown} of {total}</span>{pages > 1 && <><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>Previous</Button><span>Page {page} / {pages}</span><Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange?.(page + 1)}>Next</Button></>}</div>
     </div>
   );
 }
@@ -185,6 +185,7 @@ function TyreInventorySection() {
   const add = useAddTyreInventory();
   const remove = useDeleteTyreInventory();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     entry_type: "new",
     entry_date: new Date().toISOString().slice(0, 10),
@@ -193,7 +194,9 @@ function TyreInventorySection() {
     tyre_size: "",
     quantity: "",
   });
-  const visibleData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const pages = Math.max(1, Math.ceil(filteredData.length / 25));
+  const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
     if (!form.brand.trim() || !form.tyre_no.trim() || !form.tyre_size.trim() || Number(form.quantity) <= 0) {
@@ -225,7 +228,7 @@ function TyreInventorySection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-inventory.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={setQuery} total={(data ?? []).length} shown={visibleData.length} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Entry type">
@@ -354,6 +357,7 @@ function TyreFitmentSection() {
   const add = useAddTyreFitment();
   const remove = useDeleteTyreFitment();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     brand: "",
@@ -368,7 +372,9 @@ function TyreFitmentSection() {
     old_tyre_stock: "",
   });
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
-  const visibleData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const pages = Math.max(1, Math.ceil(filteredData.length / 25));
+  const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
     if (!form.vehicle_id || !form.tyre_place || Number(form.km) < 0) {
@@ -409,7 +415,7 @@ function TyreFitmentSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-fitment.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={setQuery} total={(data ?? []).length} shown={visibleData.length} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -592,6 +598,7 @@ function TeethPurchaseSection() {
   const add = useAddTeethPurchase();
   const remove = useDeleteTeethPurchase();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     purchase_shop: "",
@@ -602,7 +609,9 @@ function TeethPurchaseSection() {
     qty: "",
     storage_place: "1.CONTAINER",
   });
-  const visibleData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const pages = Math.max(1, Math.ceil(filteredData.length / 25));
+  const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
     if (!form.purchase_shop.trim() || !form.teeth_model.trim() || Number(form.qty) <= 0) {
@@ -643,7 +652,7 @@ function TeethPurchaseSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Purchase
       </h3>
-      <TableToolbar query={query} onQueryChange={setQuery} total={(data ?? []).length} shown={visibleData.length} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Date">
@@ -795,6 +804,7 @@ function TeethFitmentSection() {
   const add = useAddTeethFitment();
   const remove = useDeleteTeethFitment();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -806,7 +816,9 @@ function TeethFitmentSection() {
     place: "",
     old_teeth_status: "",
   });
-  const visibleData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const pages = Math.max(1, Math.ceil(filteredData.length / 25));
+  const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
     if (!form.vehicle_id || Number(form.new_teeth_qty) <= 0) {
@@ -849,7 +861,7 @@ function TeethFitmentSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Fitment
       </h3>
-      <TableToolbar query={query} onQueryChange={setQuery} total={(data ?? []).length} shown={visibleData.length} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -1139,6 +1151,7 @@ function ServicesSection() {
   const add = useAddServiceEntry();
   const remove = useDeleteServiceEntry();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -1149,7 +1162,9 @@ function ServicesSection() {
     place: "",
     amount: "",
   });
-  const visibleData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const pages = Math.max(1, Math.ceil(filteredData.length / 25));
+  const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
     if (!form.vehicle_id || !form.particular.trim() || Number(form.to_km) < Number(form.from_km)) {
@@ -1187,7 +1202,7 @@ function ServicesSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("services.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={setQuery} total={(data ?? []).length} shown={visibleData.length} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
