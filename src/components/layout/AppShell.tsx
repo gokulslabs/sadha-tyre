@@ -12,7 +12,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2 border-r border-border pr-4">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal-700 text-white"><Truck className="h-4 w-4" /></span>
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span>
           <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">SADHA TYRE MANAGEMENT</span>
         </div>
         <div className="hidden min-w-0 flex-1 items-center gap-2 md:flex">
@@ -21,8 +21,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold sm:flex"><WalletCards className="h-4 w-4 text-teal-700" /> ₹0.00</div>
-          <Button size="sm" className="hidden bg-teal-700 hover:bg-teal-800 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
+          <div className="hidden items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold sm:flex"><WalletCards className="h-4 w-4 text-blue-700" /> ₹0.00</div>
+          <Button size="sm" className="hidden bg-blue-700 hover:bg-blue-800 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
           <button type="button" aria-label="Notification" className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
           <button type="button" aria-label="Settings" className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
           <button type="button" aria-label="John Doe" className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
@@ -32,15 +32,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         <>
           <button type="button" aria-label="Close Sidebar Menu" className="fixed inset-0 z-40 bg-slate-950/25" onClick={() => setSidebarOpen(false)} />
           <aside className="fixed inset-y-0 left-0 z-50 w-[280px] border-r border-border bg-card p-5 shadow-xl">
-            <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-teal-700 text-white"><Truck className="h-4 w-4" /></span><span className="text-sm font-semibold">SADHA TYRE</span></div><button type="button" aria-label="Close Sidebar Menu" className="rounded-md p-2 text-muted-foreground hover:bg-muted" onClick={() => setSidebarOpen(false)}>×</button></div>
+            <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span><span className="text-sm font-semibold">SADHA TYRE</span></div><button type="button" aria-label="Close Sidebar Menu" className="rounded-md p-2 text-muted-foreground hover:bg-muted" onClick={() => setSidebarOpen(false)}>×</button></div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Maintenance</p>
-            <nav className="space-y-1"><a href="#tyre-view" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800"><Truck className="h-4 w-4" /> Tyre View</a><a href="#inventory" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><WalletCards className="h-4 w-4" /> Tyre Inventory</a><a href="#history" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><Bell className="h-4 w-4" /> Audit Log</a></nav>
+            <nav className="space-y-1"><a href="#tyre-view" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md bg-blue-50 px-3 py-2.5 text-sm font-medium text-blue-800"><Truck className="h-4 w-4" /> Tyre View</a><a href="#inventory" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><WalletCards className="h-4 w-4" /> Tyre Inventory</a><a href="#history" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted"><Bell className="h-4 w-4" /> Audit Log</a></nav>
           </aside>
         </>
       )}
       <div className="mx-auto max-w-[1600px] p-3 md:p-4 lg:p-5">{children}</div>
       {chatOpen && <div className="fixed bottom-24 right-5 z-40 w-[280px] rounded-xl border border-border bg-card p-4 shadow-xl"><div className="flex items-center justify-between"><p className="font-semibold">Support</p><button type="button" aria-label="Close support chat" className="text-muted-foreground hover:text-foreground" onClick={() => setChatOpen(false)}>×</button></div><p className="mt-2 text-sm text-muted-foreground">How can we help with your tyre records?</p><div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">Support chat is ready.</div></div>}
-      <button type="button" aria-label="Toggle support chat" onClick={() => setChatOpen((v) => !v)} className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-teal-700 text-white shadow-lg transition hover:bg-teal-800"><MessageCircle className="h-6 w-6" /></button>
+      <button type="button" aria-label="Toggle support chat" onClick={() => setChatOpen((v) => !v)} className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-blue-700 text-white shadow-lg transition hover:bg-blue-800"><MessageCircle className="h-6 w-6" /></button>
     </main>
   );
 }
