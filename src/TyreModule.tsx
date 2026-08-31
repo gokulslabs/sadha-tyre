@@ -2035,7 +2035,7 @@ export function TyreModule() {
   const [tab, setTab] = useState<TabKey>("view");
 
   return (
-    <AppShell>
+    <AppShell onNavigate={(key) => setTab(key as TabKey)}>
       <div className="space-y-4">
         {tab !== "view" && (
           <div className="rounded-md bg-card px-5 py-4 shadow-panel">
