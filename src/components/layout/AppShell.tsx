@@ -2,11 +2,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Bell, Menu, MessageCircle, Moon, Search, Settings, Sun, Truck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AppShell({ children, onNavigate, activeKey }: { children: ReactNode; onNavigate?: (key: string) => void; activeKey?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [profile, setProfile] = useState({ name: "Md", email: "Md@sadhainfra.com" });
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem("sadha-theme") === "dark"; } catch { return false; }
   });
@@ -14,6 +16,12 @@ export function AppShell({ children, onNavigate, activeKey }: { children: ReactN
     document.documentElement.classList.toggle("dark", darkMode);
     try { localStorage.setItem("sadha-theme", darkMode ? "dark" : "light"); } catch { /* storage may be unavailable */ }
   }, [darkMode]);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (user?.email) setProfile({ name: user.user_metadata?.full_name || "Md", email: user.email });
+    }).catch(() => { /* anonymous demo mode has no user */ });
+  }, []);
   const menuItems = [
     ["view", "Tyre View"],
     ["inventory", "Tyre Inventory"],
@@ -44,7 +52,7 @@ export function AppShell({ children, onNavigate, activeKey }: { children: ReactN
           <button type="button" aria-label="Notification" onClick={() => toast.info("No new notifications")} className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
           <button type="button" aria-label="Settings" onClick={() => toast.info("Theme and display settings are available in the moon icon")} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
           <button type="button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Light mode" : "Dark mode"} onClick={() => setDarkMode((v) => !v)} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground">{darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
-          <button type="button" aria-label="John Doe" onClick={() => toast.info("Profile management will be enabled with authentication")} className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
+          <button type="button" aria-label={profile.email} title={profile.email} onClick={() => toast.info(`Signed in as ${profile.email}`)} className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">{profile.name.slice(0, 2).toUpperCase()}</button>
         </div>
       </header>
       {sidebarOpen && (
