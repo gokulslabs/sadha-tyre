@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Bell, Menu, MessageCircle, Moon, Search, Settings, Sun, Truck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function AppShell({ children, onNavigate }: { children: ReactNode; onNavigate?: (key: string) => void }) {
+export function AppShell({ children, onNavigate, activeKey }: { children: ReactNode; onNavigate?: (key: string) => void; activeKey?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -52,7 +52,7 @@ export function AppShell({ children, onNavigate }: { children: ReactNode; onNavi
           <aside className="fixed inset-y-0 left-0 z-50 w-[280px] border-r border-border bg-card p-5 shadow-xl">
             <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span><span className="text-sm font-semibold">SADHA</span></div><button type="button" aria-label="Close Sidebar Menu" className="rounded-md p-2 text-muted-foreground hover:bg-muted" onClick={() => setSidebarOpen(false)}>×</button></div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Maintenance</p>
-            <nav className="space-y-1">{menuItems.map(([key, label], i) => <a key={key} href={`#${key}`} onClick={(e) => { e.preventDefault(); onNavigate?.(key); setSidebarOpen(false); }} className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${i === 0 ? "bg-blue-50 font-medium text-blue-800" : "text-muted-foreground hover:bg-muted"}`}><Truck className="h-4 w-4" /> {label}</a>)}</nav>
+            <nav className="space-y-1">{menuItems.map(([key, label]) => <a key={key} href={`#${key}`} onClick={(e) => { e.preventDefault(); onNavigate?.(key); setSidebarOpen(false); }} className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${activeKey === key ? "bg-blue-50 font-medium text-blue-800 dark:bg-blue-950/50 dark:text-blue-200" : "text-muted-foreground hover:bg-muted"}`}><Truck className="h-4 w-4" /> {label}</a>)}</nav>
           </aside>
         </>
       )}
