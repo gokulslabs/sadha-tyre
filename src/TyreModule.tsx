@@ -62,11 +62,16 @@ import {
   useAddTeethPurchase,
   useAddTyreFitment,
   useAddTyreInventory,
+  useUpdateTyreInventory,
   useDeleteTyreInventory,
   useDeleteTyreFitment,
+  useUpdateTyreFitment,
   useDeleteTeethPurchase,
+  useUpdateTeethPurchase,
   useDeleteTeethFitment,
+  useUpdateTeethFitment,
   useDeleteServiceEntry,
+  useUpdateServiceEntry,
   useServiceEntries,
   useTeethFitment,
   useTeethPurchase,
@@ -74,6 +79,11 @@ import {
   useTyreFitment,
   useTyreInventory,
   type TyreAuditLog,
+  type TyreInventory,
+  type TyreFitment,
+  type TeethPurchase,
+  type TeethFitment,
+  type ServiceEntry,
 } from "@/hooks/useTyreModule";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -179,11 +189,18 @@ function filterRows<T extends object>(rows: T[], query: string): T[] {
   return rows.filter((row) => Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(needle)));
 }
 
+function RecordEditDialog({ title, row, fields, pending, onClose, onSave }: { title: string; row: Record<string, unknown>; fields: { key: string; label: string; type?: string }[]; pending: boolean; onClose: () => void; onSave: (patch: Record<string, unknown>) => void }) {
+  const [draft, setDraft] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((field) => [field.key, String(row[field.key] ?? "")] )));
+  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm"><form className="w-full max-w-xl space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lift" onSubmit={(event) => { event.preventDefault(); onSave(Object.fromEntries(fields.map((field) => [field.key, field.type === "number" ? Number(draft[field.key]) || 0 : draft[field.key] || null]))); }}><div><h3 className="text-xl font-bold">Edit {title}</h3><p className="mt-1 text-sm text-muted-foreground">Changes are recorded in the audit log.</p></div><div className="grid gap-3 sm:grid-cols-2">{fields.map((field) => <Field key={field.key} label={field.label}><Input type={field.type ?? "text"} value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} /></Field>)}</div><div className="flex justify-end gap-2 border-t border-border pt-4"><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button></div></form></div>;
+}
+
 /* ================= Tyre Inventory ================= */
 function TyreInventorySection() {
   const { data, isLoading } = useTyreInventory();
   const add = useAddTyreInventory();
   const remove = useDeleteTyreInventory();
+  const update = useUpdateTyreInventory();
+  const [editing, setEditing] = useState<TyreInventory | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -339,13 +356,14 @@ function TyreInventorySection() {
                   <TableCell>{r.tyre_no || "—"}</TableCell>
                   <TableCell>{r.tyre_size || "—"}</TableCell>
                   <TableCell className="text-right">{r.quantity}</TableCell>
-                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this inventory entry?") && remove.mutate(r.id)}>Delete</Button></TableCell>
+                  <TableCell><div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setEditing(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this inventory entry?") && remove.mutate(r.id)}>Delete</Button></div></TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+      {editing && <RecordEditDialog title="tyre inventory" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "entry_type", label: "Entry type" }, { key: "brand", label: "Brand" }, { key: "tyre_no", label: "Tyre number" }, { key: "tyre_size", label: "Tyre size" }, { key: "quantity", label: "Quantity", type: "number" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Inventory updated"); }} />}
     </div>
   );
 }
@@ -356,6 +374,8 @@ function TyreFitmentSection() {
   const { data, isLoading } = useTyreFitment();
   const add = useAddTyreFitment();
   const remove = useDeleteTyreFitment();
+  const update = useUpdateTyreFitment();
+  const [editing, setEditing] = useState<TyreFitment | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -572,13 +592,14 @@ function TyreFitmentSection() {
                   <TableCell className="text-right">{r.km}</TableCell>
                   <TableCell>{r.old_tyre_status}</TableCell>
                   <TableCell>{r.old_tyre_stock || "—"}</TableCell>
-                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this fitment record?") && remove.mutate(r.id)}>Delete</Button></TableCell>
+                  <TableCell><div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setEditing(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this fitment record?") && remove.mutate(r.id)}>Delete</Button></div></TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+      {editing && <RecordEditDialog title="tyre fitment" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "brand", label: "Brand" }, { key: "tyre_no", label: "Tyre number" }, { key: "tyre_size", label: "Tyre size" }, { key: "driver_name", label: "Driver" }, { key: "tyre_place", label: "Wheel position" }, { key: "km", label: "KM", type: "number" }, { key: "remarks", label: "Remarks" }, { key: "old_tyre_status", label: "Old tyre status" }, { key: "old_tyre_stock", label: "Old tyre stock" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Fitment updated"); }} />}
     </div>
   );
 }
@@ -597,6 +618,8 @@ function TeethPurchaseSection() {
   const { data, isLoading } = useTeethPurchase();
   const add = useAddTeethPurchase();
   const remove = useDeleteTeethPurchase();
+  const update = useUpdateTeethPurchase();
+  const [editing, setEditing] = useState<TeethPurchase | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -787,13 +810,14 @@ function TeethPurchaseSection() {
                   <TableCell className="text-right">{r.washer}</TableCell>
                   <TableCell className="text-right">{r.lock_pin}</TableCell>
                   <TableCell>{r.storage_place || "—"}</TableCell>
-                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth purchase?") && remove.mutate(r.id)}>Delete</Button></TableCell>
+                  <TableCell><div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setEditing(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth purchase?") && remove.mutate(r.id)}>Delete</Button></div></TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+      {editing && <RecordEditDialog title="teeth purchase" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "purchase_shop", label: "Purchase shop" }, { key: "teeth_model", label: "Teeth model" }, { key: "qty", label: "Quantity", type: "number" }, { key: "rock_teeth", label: "Rock teeth", type: "number" }, { key: "washer", label: "Washer", type: "number" }, { key: "lock_pin", label: "Lock pin", type: "number" }, { key: "storage_place", label: "Storage place" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Teeth purchase updated"); }} />}
     </div>
   );
 }
@@ -803,6 +827,8 @@ function TeethFitmentSection() {
   const { data, isLoading } = useTeethFitment();
   const add = useAddTeethFitment();
   const remove = useDeleteTeethFitment();
+  const update = useUpdateTeethFitment();
+  const [editing, setEditing] = useState<TeethFitment | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -991,13 +1017,14 @@ function TeethFitmentSection() {
                   <TableCell className="text-right">{r.km}</TableCell>
                   <TableCell className="text-right">{r.hours}</TableCell>
                   <TableCell>{r.old_teeth_status || "—"}</TableCell>
-                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth fitment?") && remove.mutate(r.id)}>Delete</Button></TableCell>
+                  <TableCell><div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setEditing(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth fitment?") && remove.mutate(r.id)}>Delete</Button></div></TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+      {editing && <RecordEditDialog title="teeth fitment" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "new_teeth_qty", label: "New teeth quantity", type: "number" }, { key: "incharge_name", label: "Incharge" }, { key: "operator_name", label: "Operator" }, { key: "km", label: "KM", type: "number" }, { key: "hours", label: "Hours", type: "number" }, { key: "place", label: "Place" }, { key: "old_teeth_status", label: "Old teeth status" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Teeth fitment updated"); }} />}
     </div>
   );
 }
@@ -1150,6 +1177,8 @@ function ServicesSection() {
   const { data, isLoading } = useServiceEntries();
   const add = useAddServiceEntry();
   const remove = useDeleteServiceEntry();
+  const update = useUpdateServiceEntry();
+  const [editing, setEditing] = useState<ServiceEntry | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -1324,13 +1353,14 @@ function ServicesSection() {
                   <TableCell>{r.particular || "—"}</TableCell>
                   <TableCell>{r.place || "—"}</TableCell>
                   <TableCell className="text-right">{r.amount}</TableCell>
-                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this service entry?") && remove.mutate(r.id)}>Delete</Button></TableCell>
+                  <TableCell><div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setEditing(r)}>Edit</Button><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this service entry?") && remove.mutate(r.id)}>Delete</Button></div></TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+      {editing && <RecordEditDialog title="service entry" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "driver_name", label: "Driver" }, { key: "from_km", label: "From KM", type: "number" }, { key: "to_km", label: "To KM", type: "number" }, { key: "particular", label: "Particular" }, { key: "place", label: "Place" }, { key: "amount", label: "Amount", type: "number" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Service updated"); }} />}
     </div>
   );
 }
