@@ -69,6 +69,7 @@ import {
   useTyreInventory,
   type TyreAuditLog,
 } from "@/hooks/useTyreModule";
+import { supabase } from "@/integrations/supabase/client";
 
 function VehicleSelect({
   value,
@@ -1385,6 +1386,17 @@ function TyreViewSection() {
   async function replaceSelected() {
     if (!selected) return;
     try {
+      let documentPath = "";
+      if (replacementDocument) {
+        const safeName = replacementDocument.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${selected.vehicle_id}/${selected.id}/${Date.now()}-${safeName}`;
+        const upload = await supabase.storage.from("tyre-documents").upload(path, replacementDocument, { upsert: true });
+        if (upload.error) {
+          toast.warning("Tyre saved; document storage is not enabled on this Supabase project yet.");
+        } else {
+          documentPath = path;
+        }
+      }
       await save.mutateAsync({
         id: selected.id,
         tyre_type: replacement.tyre_type,
@@ -1402,7 +1414,7 @@ function TyreViewSection() {
         event_type: "replaced",
         km_reading: Number(replacement.km_reading) || 0,
         cost: Number(replacement.amount) || 0,
-        note: [`Source: ${replacement.source}`, replacement.remark, replacementDocument ? `Document: ${replacementDocument.name}` : ""].filter(Boolean).join(" · "),
+        note: [`Source: ${replacement.source}`, replacement.remark, documentPath ? `Document: ${documentPath}` : replacementDocument ? `Document: ${replacementDocument.name}` : ""].filter(Boolean).join(" · "),
       });
       toast.success(`Tyre ${selected.position_code} replaced`);
       setReplacementOpen(false);
