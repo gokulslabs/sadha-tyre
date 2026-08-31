@@ -80,6 +80,10 @@ function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-md bg-card shadow-panel">{children}</div>;
 }
 
+function StatCell({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border border-border bg-muted/30 p-3"><p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold text-foreground">{value}</p></div>;
+}
+
 /* ================= Tyre Inventory ================= */
 function TyreInventorySection() {
   const { data, isLoading } = useTyreInventory();
