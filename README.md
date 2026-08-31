@@ -6,14 +6,15 @@ module; the existing portal is not modified.
 
 ## Run
 
-Create `.env` from `.env.example` and set the Supabase URL and publishable key
-for the existing Sadha project, then run:
+Create a new Supabase project, apply the migrations in `supabase/migrations/`,
+then create `.env` from `.env.example` and set that new project's URL and
+publishable key before running:
 
 ```sh
 npm install
 npm run dev
 ```
 
-The module uses the existing Supabase tyre tables (`tyres`, `tyre_events`,
-`tyre_inventory`, `tyre_fitment`, `teeth_purchase`, `teeth_fitment`,
-`service_entries`, and `tyre_audit_log`).
+The migrations create only the standalone tyre tables (`vehicles`, `tyres`,
+`tyre_events`, `tyre_inventory`, `tyre_fitment`, `teeth_purchase`,
+`teeth_fitment`, `service_entries`, and `tyre_audit_log`).
