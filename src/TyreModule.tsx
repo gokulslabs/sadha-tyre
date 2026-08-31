@@ -33,6 +33,7 @@ import {
 import {
   useVehicles,
   useTyres,
+  useAllTyres,
   useProvisionTyres,
   useSetExistingTyre,
   useSaveTyre,
@@ -61,6 +62,11 @@ import {
   useAddTeethPurchase,
   useAddTyreFitment,
   useAddTyreInventory,
+  useDeleteTyreInventory,
+  useDeleteTyreFitment,
+  useDeleteTeethPurchase,
+  useDeleteTeethFitment,
+  useDeleteServiceEntry,
   useServiceEntries,
   useTeethFitment,
   useTeethPurchase,
@@ -162,6 +168,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
 function TyreInventorySection() {
   const { data, isLoading } = useTyreInventory();
   const add = useAddTyreInventory();
+  const remove = useDeleteTyreInventory();
   const [form, setForm] = useState({
     entry_type: "new",
     entry_date: new Date().toISOString().slice(0, 10),
@@ -281,19 +288,20 @@ function TyreInventorySection() {
               <TableHead>Tyre no</TableHead>
               <TableHead>Size</TableHead>
               <TableHead className="text-right">Qty</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
             ) : (data ?? []).length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-16 text-center text-muted-foreground"
                 >
                   No tyre stock entries yet
@@ -310,6 +318,7 @@ function TyreInventorySection() {
                   <TableCell>{r.tyre_no || "—"}</TableCell>
                   <TableCell>{r.tyre_size || "—"}</TableCell>
                   <TableCell className="text-right">{r.quantity}</TableCell>
+                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this inventory entry?") && remove.mutate(r.id)}>Delete</Button></TableCell>
                 </TableRow>
               ))
             )}
@@ -325,6 +334,7 @@ function TyreFitmentSection() {
   const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useTyreFitment();
   const add = useAddTyreFitment();
+  const remove = useDeleteTyreFitment();
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     brand: "",
@@ -505,19 +515,20 @@ function TyreFitmentSection() {
               <TableHead className="text-right">KM</TableHead>
               <TableHead>Old status</TableHead>
               <TableHead>Stock</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
             ) : (data ?? []).length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-16 text-center text-muted-foreground"
                 >
                   No fitment records yet
@@ -534,6 +545,7 @@ function TyreFitmentSection() {
                   <TableCell className="text-right">{r.km}</TableCell>
                   <TableCell>{r.old_tyre_status}</TableCell>
                   <TableCell>{r.old_tyre_stock || "—"}</TableCell>
+                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this fitment record?") && remove.mutate(r.id)}>Delete</Button></TableCell>
                 </TableRow>
               ))
             )}
@@ -557,6 +569,7 @@ function TeethSection() {
 function TeethPurchaseSection() {
   const { data, isLoading } = useTeethPurchase();
   const add = useAddTeethPurchase();
+  const remove = useDeleteTeethPurchase();
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     purchase_shop: "",
@@ -711,19 +724,20 @@ function TeethPurchaseSection() {
               <TableHead className="text-right">Washer</TableHead>
               <TableHead className="text-right">Pin</TableHead>
               <TableHead>Storage</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
             ) : (data ?? []).length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-muted-foreground"
                 >
                   No teeth purchases yet
@@ -740,6 +754,7 @@ function TeethPurchaseSection() {
                   <TableCell className="text-right">{r.washer}</TableCell>
                   <TableCell className="text-right">{r.lock_pin}</TableCell>
                   <TableCell>{r.storage_place || "—"}</TableCell>
+                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth purchase?") && remove.mutate(r.id)}>Delete</Button></TableCell>
                 </TableRow>
               ))
             )}
@@ -754,6 +769,7 @@ function TeethFitmentSection() {
   const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useTeethFitment();
   const add = useAddTeethFitment();
+  const remove = useDeleteTeethFitment();
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -904,19 +920,20 @@ function TeethFitmentSection() {
               <TableHead className="text-right">KM</TableHead>
               <TableHead className="text-right">Hrs</TableHead>
               <TableHead>Old status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
             ) : (data ?? []).length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-muted-foreground"
                 >
                   No teeth fitment records yet
@@ -935,6 +952,7 @@ function TeethFitmentSection() {
                   <TableCell className="text-right">{r.km}</TableCell>
                   <TableCell className="text-right">{r.hours}</TableCell>
                   <TableCell>{r.old_teeth_status || "—"}</TableCell>
+                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this teeth fitment?") && remove.mutate(r.id)}>Delete</Button></TableCell>
                 </TableRow>
               ))
             )}
@@ -1092,6 +1110,7 @@ function ServicesSection() {
   const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useServiceEntries();
   const add = useAddServiceEntry();
+  const remove = useDeleteServiceEntry();
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -1230,19 +1249,20 @@ function ServicesSection() {
               <TableHead>Particular</TableHead>
               <TableHead>Place</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
             ) : (data ?? []).length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-16 text-center text-muted-foreground"
                 >
                   No service records yet
@@ -1259,6 +1279,7 @@ function ServicesSection() {
                   <TableCell>{r.particular || "—"}</TableCell>
                   <TableCell>{r.place || "—"}</TableCell>
                   <TableCell className="text-right">{r.amount}</TableCell>
+                  <TableCell><Button variant="ghost" size="sm" onClick={() => window.confirm("Delete this service entry?") && remove.mutate(r.id)}>Delete</Button></TableCell>
                 </TableRow>
               ))
             )}
@@ -1272,6 +1293,7 @@ function ServicesSection() {
 /* ================= Truck Tyre View (TMS Prime-style interactive layout) ================= */
 function TyreViewSection() {
   const { data: vehicles = [], isLoading: loadingVehicles } = useVehicles();
+  const { data: allTyres = [] } = useAllTyres();
   const [vehicleId, setVehicleId] = useState("");
   const [selected, setSelected] = useState<Tyre | null>(null);
   const [editingDetails, setEditingDetails] = useState(false);
@@ -1330,6 +1352,13 @@ function TyreViewSection() {
     return tyrePositions(vehicle.wheels).filter((p) => !present.has(p.pos))
       .length;
   }, [vehicle, showAddVehicle, tyres]);
+
+  const fleetStats = useMemo(() => {
+    const counts = { Good: 0, Moderate: 0, Replace: 0 };
+    for (const tyre of allTyres) counts[tyreHealth(Number(tyre.current_km))] += 1;
+    const expected = vehicles.reduce((sum, v) => sum + tyrePositions(v.wheels).length, 0);
+    return { ...counts, total: allTyres.length, expected, missing: Math.max(0, expected - allTyres.length) };
+  }, [allTyres, vehicles]);
 
   // While adding a vehicle, show the selected wheel layout immediately as a preview.
   const displayGroups = useMemo(() => {
@@ -1698,6 +1727,13 @@ function TyreViewSection() {
           </span>
         </span>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCell label="Fleet vehicles" value={String(vehicles.length)} />
+        <StatCell label="Tyres tracked" value={`${fleetStats.total} / ${fleetStats.expected}`} />
+        <StatCell label="Good" value={String(fleetStats.Good)} />
+        <StatCell label="Moderate" value={String(fleetStats.Moderate)} />
+        <StatCell label="Replace soon" value={String(fleetStats.Replace)} />
+      </div>
       {missingCount > 0 && !showAddVehicle && (
         <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
           <span>
@@ -1857,7 +1893,16 @@ function TyreViewSection() {
                       {tyreEvents.slice(0, 5).map((event) => (
                         <div key={event.id} className="flex items-center justify-between rounded-md bg-card px-2.5 py-2 text-xs">
                           <span className="font-medium capitalize">{event.event_type}</span>
-                          <span className="text-muted-foreground">{displayDate(event.event_date)} · {Number(event.km_reading).toLocaleString("en-IN")} km</span>
+                          <span className="flex items-center gap-2 text-muted-foreground">
+                            {displayDate(event.event_date)} · {Number(event.km_reading).toLocaleString("en-IN")} km
+                            {(() => {
+                              const match = event.note?.match(/Document:\s*([^·]+)/i);
+                              if (!match) return null;
+                              const path = match[1].trim();
+                              const url = supabase.storage.from("tyre-documents").getPublicUrl(path).data.publicUrl;
+                              return <a className="font-medium text-primary underline" href={url} target="_blank" rel="noreferrer">Open document</a>;
+                            })()}
+                          </span>
                         </div>
                       ))}
                     </div>

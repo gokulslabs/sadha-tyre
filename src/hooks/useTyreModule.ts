@@ -38,7 +38,7 @@ export function useAddTyreInventory() {
       const { error } = await supabase.from("tyre_inventory").insert(row);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tyre-inventory"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-inventory"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); },
   });
 }
 
@@ -51,6 +51,10 @@ export function useUpdateTyreInventory() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tyre-inventory"] }),
   });
+}
+export function useDeleteTyreInventory() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("tyre_inventory").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-inventory"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Tyre Fitment ---------------- */
@@ -115,10 +119,15 @@ export function useAddTyreFitment() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tyre-fitment"] });
+      qc.invalidateQueries({ queryKey: ["tyre-audit-log"] });
       qc.invalidateQueries({ queryKey: ["tyres"] });
       qc.invalidateQueries({ queryKey: ["tyre-events"] });
     },
   });
+}
+export function useDeleteTyreFitment() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("tyre_fitment").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Teeth Purchase ---------------- */
@@ -143,8 +152,12 @@ export function useAddTeethPurchase() {
       const { error } = await supabase.from("teeth_purchase").insert(row);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["teeth-purchase"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-purchase"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); },
   });
+}
+export function useDeleteTeethPurchase() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("teeth_purchase").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-purchase"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Teeth Fitment ---------------- */
@@ -169,8 +182,12 @@ export function useAddTeethFitment() {
       const { error } = await supabase.from("teeth_fitment").insert(row);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["teeth-fitment"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); },
   });
+}
+export function useDeleteTeethFitment() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("teeth_fitment").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Service Entries ---------------- */
@@ -195,8 +212,12 @@ export function useAddServiceEntry() {
       const { error } = await supabase.from("service_entries").insert(row);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["service-entries"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["service-entries"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); },
   });
+}
+export function useDeleteServiceEntry() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("service_entries").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["service-entries"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Audit Log ---------------- */
