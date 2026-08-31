@@ -9,6 +9,7 @@ export function AppShell({ children, onNavigate, activeKey }: { children: ReactN
   const [chatOpen, setChatOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [profile, setProfile] = useState({ name: "Md", email: "Md@sadhainfra.com" });
+  const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     try { return localStorage.getItem("sadha-theme") === "dark"; } catch { return false; }
   });
@@ -52,9 +53,10 @@ export function AppShell({ children, onNavigate, activeKey }: { children: ReactN
           <button type="button" aria-label="Notification" onClick={() => toast.info("No new notifications")} className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
           <button type="button" aria-label="Settings" onClick={() => toast.info("Theme and display settings are available in the moon icon")} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
           <button type="button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Light mode" : "Dark mode"} onClick={() => setDarkMode((v) => !v)} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground">{darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
-          <button type="button" aria-label={profile.email} title={profile.email} onClick={() => toast.info(`Signed in as ${profile.email}`)} className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">{profile.name.slice(0, 2).toUpperCase()}</button>
+          <button type="button" aria-label={profile.email} title={profile.email} onClick={() => setProfileOpen((v) => !v)} className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">{profile.name.slice(0, 2).toUpperCase()}</button>
         </div>
       </header>
+      {profileOpen && <div className="fixed right-4 top-[62px] z-50 w-72 rounded-xl border border-border bg-card p-4 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profile</p><p className="mt-1 font-semibold">{profile.name}</p><p className="text-sm text-muted-foreground">{profile.email}</p><div className="mt-4 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setProfileOpen(false); toast.info("Profile details are managed by your Supabase account"); }}>Manage profile</Button><Button size="sm" variant="ghost" onClick={async () => { await supabase.auth.signOut(); setProfileOpen(false); toast.success("Signed out"); }}>Sign out</Button></div></div>}
       {sidebarOpen && (
         <>
           <button type="button" aria-label="Close Sidebar Menu" className="fixed inset-0 z-40 bg-slate-950/25" onClick={() => setSidebarOpen(false)} />

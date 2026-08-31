@@ -174,19 +174,23 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TableToolbar({ query, onQueryChange, total, shown, page = 1, pages = 1, onPageChange }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number; page?: number; pages?: number; onPageChange?: (page: number) => void }) {
+function TableToolbar({ query, onQueryChange, total, shown, page = 1, pages = 1, onPageChange, fromDate, toDate, onFromDateChange, onToDateChange, sort, onSortChange }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number; page?: number; pages?: number; onPageChange?: (page: number) => void; fromDate?: string; toDate?: string; onFromDateChange?: (value: string) => void; onToDateChange?: (value: string) => void; sort?: "newest" | "oldest"; onSortChange?: (value: "newest" | "oldest") => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/70 bg-card px-3 py-2">
-      <Input className="h-9 max-w-sm" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search records…" aria-label="Search records" />
-      <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>Showing {shown} of {total}</span>{pages > 1 && <><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>Previous</Button><span>Page {page} / {pages}</span><Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange?.(page + 1)}>Next</Button></>}</div>
+      <div className="flex flex-wrap items-center gap-2"><Input className="h-9 max-w-sm" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search records…" aria-label="Search records" /><Input className="h-9 w-36" type="date" value={fromDate ?? ""} onChange={(e) => onFromDateChange?.(e.target.value)} aria-label="From date" /><Input className="h-9 w-36" type="date" value={toDate ?? ""} onChange={(e) => onToDateChange?.(e.target.value)} aria-label="To date" /></div>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><select aria-label="Sort records" className="h-9 rounded-md border border-input bg-background px-2" value={sort ?? "newest"} onChange={(e) => onSortChange?.(e.target.value as "newest" | "oldest")}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select><span>Showing {shown} of {total}</span>{pages > 1 && <><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>Previous</Button><span>Page {page} / {pages}</span><Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange?.(page + 1)}>Next</Button></>}</div>
     </div>
   );
 }
 
-function filterRows<T extends object>(rows: T[], query: string): T[] {
+function filterRows<T extends object>(rows: T[], query: string, fromDate = "", toDate = "", sort: "newest" | "oldest" = "newest"): T[] {
   const needle = query.trim().toLowerCase();
-  if (!needle) return rows;
-  return rows.filter((row) => Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(needle)));
+  const filtered = rows.filter((row) => {
+    const matchesQuery = !needle || Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(needle));
+    const dateValue = String((row as Record<string, unknown>).entry_date ?? (row as Record<string, unknown>).changed_at ?? "").slice(0, 10);
+    return matchesQuery && (!fromDate || dateValue >= fromDate) && (!toDate || dateValue <= toDate);
+  });
+  return [...filtered].sort((a, b) => { const getDate = (row: T) => String((row as Record<string, unknown>).entry_date ?? (row as Record<string, unknown>).changed_at ?? ""); const result = getDate(b).localeCompare(getDate(a)); return sort === "newest" ? result : -result; });
 }
 
 function RecordEditDialog({ title, row, fields, pending, onClose, onSave }: { title: string; row: Record<string, unknown>; fields: { key: string; label: string; type?: string }[]; pending: boolean; onClose: () => void; onSave: (patch: Record<string, unknown>) => void }) {
@@ -203,6 +207,9 @@ function TyreInventorySection() {
   const [editing, setEditing] = useState<TyreInventory | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [form, setForm] = useState({
     entry_type: "new",
     entry_date: new Date().toISOString().slice(0, 10),
@@ -211,7 +218,7 @@ function TyreInventorySection() {
     tyre_size: "",
     quantity: "",
   });
-  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
@@ -245,7 +252,7 @@ function TyreInventorySection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-inventory.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Entry type">
@@ -378,6 +385,9 @@ function TyreFitmentSection() {
   const [editing, setEditing] = useState<TyreFitment | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     brand: "",
@@ -392,7 +402,7 @@ function TyreFitmentSection() {
     old_tyre_stock: "",
   });
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
-  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
@@ -435,7 +445,7 @@ function TyreFitmentSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-fitment.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -622,6 +632,9 @@ function TeethPurchaseSection() {
   const [editing, setEditing] = useState<TeethPurchase | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     purchase_shop: "",
@@ -632,7 +645,7 @@ function TeethPurchaseSection() {
     qty: "",
     storage_place: "1.CONTAINER",
   });
-  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
@@ -675,7 +688,7 @@ function TeethPurchaseSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Purchase
       </h3>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Date">
@@ -831,6 +844,9 @@ function TeethFitmentSection() {
   const [editing, setEditing] = useState<TeethFitment | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -842,7 +858,7 @@ function TeethFitmentSection() {
     place: "",
     old_teeth_status: "",
   });
-  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
@@ -887,7 +903,7 @@ function TeethFitmentSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Fitment
       </h3>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -1181,6 +1197,9 @@ function ServicesSection() {
   const [editing, setEditing] = useState<ServiceEntry | null>(null);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [form, setForm] = useState({
     entry_date: new Date().toISOString().slice(0, 10),
     vehicle_id: "",
@@ -1191,7 +1210,7 @@ function ServicesSection() {
     place: "",
     amount: "",
   });
-  const filteredData = useMemo(() => filterRows(data ?? [], query), [data, query]);
+  const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
@@ -1231,7 +1250,7 @@ function ServicesSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("services.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
