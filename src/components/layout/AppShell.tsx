@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Bell, Menu, MessageCircle, Moon, Search, Settings, Sun, Truck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function AppShell({ children, onNavigate, activeKey }: { children: ReactNode; onNavigate?: (key: string) => void; activeKey?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,11 +40,11 @@ export function AppShell({ children, onNavigate, activeKey }: { children: ReactN
         </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold sm:flex"><WalletCards className="h-4 w-4 text-blue-700" /> ₹0.00</div>
-          <Button size="sm" className="hidden bg-blue-700 hover:bg-blue-800 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
-          <button type="button" aria-label="Notification" className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
-          <button type="button" aria-label="Settings" className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
+          <Button size="sm" onClick={() => { onNavigate?.("fitment"); toast.info("Open Tyre Fitment to record a trip reading"); }} className="hidden bg-blue-700 hover:bg-blue-800 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
+          <button type="button" aria-label="Notification" onClick={() => toast.info("No new notifications")} className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
+          <button type="button" aria-label="Settings" onClick={() => toast.info("Theme and display settings are available in the moon icon")} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
           <button type="button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Light mode" : "Dark mode"} onClick={() => setDarkMode((v) => !v)} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground">{darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
-          <button type="button" aria-label="John Doe" className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
+          <button type="button" aria-label="John Doe" onClick={() => toast.info("Profile management will be enabled with authentication")} className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
         </div>
       </header>
       {sidebarOpen && (
