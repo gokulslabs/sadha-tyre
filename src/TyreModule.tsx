@@ -1933,6 +1933,9 @@ function TyreViewSection() {
                   }
                 />
               </Field>
+              <Field label="Document">
+                <Input type="file" className="cursor-pointer text-xs" />
+              </Field>
             </div>
             <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
               <Button
