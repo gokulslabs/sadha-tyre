@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useVehicles, useTyres, useProvisionTyres, useSaveTyre, type Tyre } from "@/hooks/useTyres";
-import { axlePlan, healthClasses, shortKm, tyreHealth, costPerKm, inr } from "@/lib/tyres";
+import { useVehicles, useTyres, useProvisionTyres, useSaveTyre, useAddVehicle, type Tyre } from "@/hooks/useTyres";
+import { axlePlan, healthClasses, shortKm, tyreHealth, costPerKm, inr, WHEEL_CONFIGS } from "@/lib/tyres";
 import {
   AUDIT_TABLE_LABELS,
   OLD_TYRE_STATUSES,
@@ -698,11 +698,14 @@ function TyreViewSection() {
   const { data: vehicles = [], isLoading: loadingVehicles } = useVehicles();
   const [vehicleId, setVehicleId] = useState("");
   const [selected, setSelected] = useState<Tyre | null>(null);
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({ vehicle_number: "", wheels: "6", odometer: "0" });
   const [draft, setDraft] = useState({ brand: "", serial_no: "", current_km: "", cost: "", remark: "" });
   const vehicle = vehicles.find((v) => v.id === (vehicleId || vehicles[0]?.id));
   const { data: tyres = [], isLoading: loadingTyres } = useTyres(vehicle?.id);
   const provision = useProvisionTyres();
   const save = useSaveTyre();
+  const addVehicle = useAddVehicle();
 
   const axleGroups = useMemo(() => {
     const groups = new Map<string, Tyre[]>();
@@ -738,6 +741,15 @@ function TyreViewSection() {
     } catch (e) { toast.error(e instanceof Error ? e.message : "Could not update tyre"); }
   }
 
+  async function addNewVehicle() {
+    if (!newVehicle.vehicle_number.trim()) return;
+    try {
+      const created = await addVehicle.mutateAsync({ vehicle_number: newVehicle.vehicle_number.trim(), wheels: Number(newVehicle.wheels), odometer: Number(newVehicle.odometer) || 0 });
+      setVehicleId(created.id); setShowAddVehicle(false); setNewVehicle({ vehicle_number: "", wheels: "6", odometer: "0" });
+      toast.success("Vehicle added");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not add vehicle"); }
+  }
+
   const axleBlock = (label: string, list: Tyre[]) => (
     <div key={label} className="rounded-lg border border-border bg-muted/30 p-3">
       <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
@@ -766,8 +778,9 @@ function TyreViewSection() {
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-card px-5 py-4 shadow-panel">
       <h2 className="text-[22px] font-semibold tracking-[-0.02em]">Truck Tyre View</h2>
-      <Select value={vehicle.id} onValueChange={(v) => { setVehicleId(v); setSelected(null); }}><SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger><SelectContent>{vehicles.map((v) => <SelectItem key={v.id} value={v.id}>{v.vehicle_number}</SelectItem>)}</SelectContent></Select>
+      <div className="flex flex-wrap gap-2"><Select value={vehicle.id} onValueChange={(v) => { setVehicleId(v); setSelected(null); }}><SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger><SelectContent>{vehicles.map((v) => <SelectItem key={v.id} value={v.id}>{v.vehicle_number} · {v.wheels} wheeler</SelectItem>)}</SelectContent></Select><Button variant="outline" onClick={() => setShowAddVehicle((v) => !v)}><Plus className="mr-2 h-4 w-4" /> Add vehicle</Button></div>
     </div>
+    {showAddVehicle && <Card><div className="grid gap-3 p-4 sm:grid-cols-3"><Field label="Vehicle number"><Input value={newVehicle.vehicle_number} placeholder="MH12XX0000" onChange={(e) => setNewVehicle((v) => ({ ...v, vehicle_number: e.target.value }))} /></Field><Field label="Wheel configuration"><Select value={newVehicle.wheels} onValueChange={(v) => setNewVehicle((f) => ({ ...f, wheels: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{WHEEL_CONFIGS.map((w) => <SelectItem key={w} value={String(w)}>{w} wheeler</SelectItem>)}</SelectContent></Select></Field><Field label="Current odometer"><Input type="number" value={newVehicle.odometer} onChange={(e) => setNewVehicle((v) => ({ ...v, odometer: e.target.value }))} /></Field></div><div className="flex justify-end border-t border-border px-4 py-3"><Button onClick={addNewVehicle} disabled={addVehicle.isPending || !newVehicle.vehicle_number.trim()}>Create vehicle</Button></div></Card>}
     <div className="flex flex-wrap items-center justify-center gap-8 rounded-md bg-card px-5 py-3 text-xs shadow-panel"><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-success" /> Good (&lt;50k km)</span><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-warning" /> Moderate (50–80k km)</span><span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full bg-destructive" /> Replace (&gt;80k km)</span></div>
     {axleGroups.length === 0 && <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm"><span><strong>{vehicle.wheels} positions have no tyre record</strong><br /><span className="text-muted-foreground">Set company-fitted tyres without creating a purchase or expense.</span></span><Button onClick={createPositions} disabled={provision.isPending}><Wand2 className="mr-2 h-4 w-4" /> Set Existing Tyres</Button></div>}
     <div className="rounded-lg border border-border bg-card p-4 shadow-panel"><div className="grid min-w-[820px] grid-cols-[1fr_190px_1fr] items-center gap-4 overflow-x-auto"><div className="space-y-3">{leftAxles.map(([label, list]) => axleBlock(label, list))}</div><div className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-muted/20 p-4"><Truck className="h-10 w-10 text-muted-foreground" /><p className="text-center text-lg font-bold tracking-widest" style={{ writingMode: "vertical-rl" }}>{vehicle.vehicle_number}</p><div className="mt-auto grid w-full gap-2 text-center text-xs"><div><span className="text-muted-foreground">AXLES</span><br /><strong className="text-xl">{plan.steer + plan.rear}</strong></div><div><span className="text-muted-foreground">READING</span><br /><strong className="text-xl">{Number(vehicle.odometer).toLocaleString("en-IN")} km</strong></div></div></div><div className="space-y-3">{rightAxles.map(([label, list]) => axleBlock(label, list))}</div></div><p className="mt-4 text-center text-xs text-muted-foreground">Click on any tyre to view detailed information</p></div>

@@ -1,4 +1,4 @@
-export const WHEEL_CONFIGS = [6, 10, 12, 14, 16, 18, 22] as const;
+export const WHEEL_CONFIGS = [4, 6, 8, 10, 12, 14, 16, 18, 22] as const;
 
 export const TYRE_TYPES = ["New", "Retread", "Old", "Spare"] as const;
 export const TYRE_STATUSES = ["running", "removed", "scrapped"] as const;

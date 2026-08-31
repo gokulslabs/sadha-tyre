@@ -28,6 +28,18 @@ export function useVehicles() {
   });
 }
 
+export function useAddVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: TablesInsert<"vehicles">) => {
+      const { data, error } = await supabase.from("vehicles").insert(row).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+}
+
 export function useTyres(vehicleId?: string) {
   return useQuery({
     queryKey: ["tyres", vehicleId ?? "none"],
