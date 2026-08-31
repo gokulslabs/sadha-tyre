@@ -114,6 +114,18 @@ function Field({
   );
 }
 
+function displayDate(value?: string | null) {
+  if (!value) return "—";
+  const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : parsed.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+}
+
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-md bg-card shadow-panel">{children}</div>;
 }
@@ -1751,7 +1763,7 @@ function TyreViewSection() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <StatCell
                     label="Installed On"
-                    value={selected.fitted_on || "—"}
+                    value={displayDate(selected.fitted_on)}
                   />
                   <StatCell
                     label="At KM Reading"
@@ -1792,7 +1804,7 @@ function TyreViewSection() {
                       {tyreEvents.slice(0, 5).map((event) => (
                         <div key={event.id} className="flex items-center justify-between rounded-md bg-card px-2.5 py-2 text-xs">
                           <span className="font-medium capitalize">{event.event_type}</span>
-                          <span className="text-muted-foreground">{event.event_date} · {Number(event.km_reading).toLocaleString("en-IN")} km</span>
+                          <span className="text-muted-foreground">{displayDate(event.event_date)} · {Number(event.km_reading).toLocaleString("en-IN")} km</span>
                         </div>
                       ))}
                     </div>
