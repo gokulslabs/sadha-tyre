@@ -791,7 +791,7 @@ function TyreViewSection() {
         {[list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, ""))), list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")))].map((row, i) => (
           <div key={i} className="flex justify-center gap-2">
             {row.map((t) => {
-              const hasData = Number(t.current_km) > 0 || Boolean(t.brand || t.serial_no);
+              const hasData = !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
               const health = tyreHealth(Number(t.current_km));
               const cls = healthClasses[health];
               return <button key={t.id} type="button" title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`} disabled={t.id.startsWith("preview-")} onClick={() => selectTyre(t)} aria-label={`Tyre ${t.position_code}`} className={`relative h-[110px] w-[110px] rounded-full bg-card transition hover:scale-105 ${hasData ? `ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}>
