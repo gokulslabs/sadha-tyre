@@ -93,6 +93,17 @@ export function useProvisionTyres() {
   });
 }
 
+export function useSetExistingTyre() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ vehicleId, positionCode, axleLabel }: { vehicleId: string; positionCode: string; axleLabel?: string | null }) => {
+      const { error } = await supabase.from("tyres").upsert({ vehicle_id: vehicleId, position_code: positionCode, axle_label: axleLabel ?? null }, { onConflict: "vehicle_id,position_code" });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tyres"] }),
+  });
+}
+
 export type TyreUpdate = {
   id: string;
   tyre_type?: string;
