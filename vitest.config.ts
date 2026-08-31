@@ -3,5 +3,5 @@ import path from "node:path";
 
 export default defineConfig({
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  test: { environment: "node", clearMocks: true },
+  test: { environment: "node", clearMocks: true, exclude: ["e2e/**", "node_modules/**", "dist/**"] },
 });
