@@ -37,6 +37,7 @@ import {
   useSetExistingTyre,
   useSaveTyre,
   useAddTyreEvent,
+  useTyreEvents,
   useAddVehicle,
   type Tyre,
 } from "@/hooks/useTyres";
@@ -1234,6 +1235,11 @@ function TyreViewSection() {
   });
   const vehicle = vehicles.find((v) => v.id === (vehicleId || vehicles[0]?.id));
   const { data: tyres = [], isLoading: loadingTyres } = useTyres(vehicle?.id);
+  const { data: tyreEvents = [] } = useTyreEvents(
+    selected && !selected.id.startsWith("missing-") && !selected.id.startsWith("preview-")
+      ? selected.id
+      : undefined,
+  );
   const provision = useProvisionTyres();
   const setExisting = useSetExistingTyre();
   const save = useSaveTyre();
@@ -1763,6 +1769,22 @@ function TyreViewSection() {
                       value={selected.serial_no || "—"}
                     />
                   </div>
+                </div>
+                <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Maintenance history</p>
+                    <span className="text-[11px] text-muted-foreground">{tyreEvents.length} event{tyreEvents.length === 1 ? "" : "s"}</span>
+                  </div>
+                  {tyreEvents.length ? (
+                    <div className="mt-2 space-y-2">
+                      {tyreEvents.slice(0, 5).map((event) => (
+                        <div key={event.id} className="flex items-center justify-between rounded-md bg-card px-2.5 py-2 text-xs">
+                          <span className="font-medium capitalize">{event.event_type}</span>
+                          <span className="text-muted-foreground">{event.event_date} · {Number(event.km_reading).toLocaleString("en-IN")} km</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="mt-2 text-xs text-muted-foreground">No maintenance events recorded yet.</p>}
                 </div>
                 <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
                   <Button
