@@ -22,7 +22,7 @@ export function AppShell({ children, onNavigate }: { children: ReactNode; onNavi
         </button>
         <div className="flex items-center gap-2 border-r border-border pr-4">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span>
-          <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">SADHA TYRE MANAGEMENT</span>
+          <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">SADHA</span>
         </div>
         <div className="hidden min-w-0 flex-1 items-center gap-2 md:flex">
           <div className="relative flex h-9 w-[280px] items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
@@ -42,7 +42,7 @@ export function AppShell({ children, onNavigate }: { children: ReactNode; onNavi
         <>
           <button type="button" aria-label="Close Sidebar Menu" className="fixed inset-0 z-40 bg-slate-950/25" onClick={() => setSidebarOpen(false)} />
           <aside className="fixed inset-y-0 left-0 z-50 w-[280px] border-r border-border bg-card p-5 shadow-xl">
-            <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span><span className="text-sm font-semibold">SADHA TYRE</span></div><button type="button" aria-label="Close Sidebar Menu" className="rounded-md p-2 text-muted-foreground hover:bg-muted" onClick={() => setSidebarOpen(false)}>×</button></div>
+            <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-700 text-white"><Truck className="h-4 w-4" /></span><span className="text-sm font-semibold">SADHA</span></div><button type="button" aria-label="Close Sidebar Menu" className="rounded-md p-2 text-muted-foreground hover:bg-muted" onClick={() => setSidebarOpen(false)}>×</button></div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Maintenance</p>
             <nav className="space-y-1">{menuItems.map(([key, label], i) => <a key={key} href={`#${key}`} onClick={(e) => { e.preventDefault(); onNavigate?.(key); setSidebarOpen(false); }} className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${i === 0 ? "bg-blue-50 font-medium text-blue-800" : "text-muted-foreground hover:bg-muted"}`}><Truck className="h-4 w-4" /> {label}</a>)}</nav>
           </aside>
