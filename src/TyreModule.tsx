@@ -704,7 +704,7 @@ function TyreViewSection() {
   const [selected, setSelected] = useState<Tyre | null>(null);
   const [editingDetails, setEditingDetails] = useState(false);
   const [replacementOpen, setReplacementOpen] = useState(false);
-  const [replacement, setReplacement] = useState({ event_date: new Date().toISOString().slice(0, 10), km_reading: "0", tyre_type: "New", amount: "0", serial_no: "", remark: "" });
+  const [replacement, setReplacement] = useState({ event_date: new Date().toISOString().slice(0, 10), km_reading: "0", tyre_type: "New", source: "Existing", amount: "0", serial_no: "", remark: "" });
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [newVehicle, setNewVehicle] = useState({ vehicle_number: "", wheels: "6", odometer: "0" });
   const [draft, setDraft] = useState({ brand: "", serial_no: "", current_km: "", cost: "", remark: "" });
