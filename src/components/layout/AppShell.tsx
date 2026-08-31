@@ -1,11 +1,18 @@
-import { useState, type ReactNode } from "react";
-import { Bell, Menu, MessageCircle, Search, Settings, Truck, WalletCards } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Bell, Menu, MessageCircle, Moon, Search, Settings, Sun, Truck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppShell({ children, onNavigate }: { children: ReactNode; onNavigate?: (key: string) => void }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem("sadha-theme") === "dark"; } catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    try { localStorage.setItem("sadha-theme", darkMode ? "dark" : "light"); } catch { /* storage may be unavailable */ }
+  }, [darkMode]);
   const menuItems = [
     ["view", "Tyre View"],
     ["inventory", "Tyre Inventory"],
@@ -35,6 +42,7 @@ export function AppShell({ children, onNavigate }: { children: ReactNode; onNavi
           <Button size="sm" className="hidden bg-blue-700 hover:bg-blue-800 sm:inline-flex"><Truck className="h-4 w-4" /> Add Trip</Button>
           <button type="button" aria-label="Notification" className="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Bell className="h-5 w-5" /><span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">0</span></button>
           <button type="button" aria-label="Settings" className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"><Settings className="h-5 w-5" /></button>
+          <button type="button" aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} title={darkMode ? "Light mode" : "Dark mode"} onClick={() => setDarkMode((v) => !v)} className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground">{darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
           <button type="button" aria-label="John Doe" className="hidden h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 sm:grid">JD</button>
         </div>
       </header>
