@@ -49,7 +49,7 @@ export function useUpdateTyreInventory() {
       const { error } = await supabase.from("tyre_inventory").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tyre-inventory"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-inventory"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); },
   });
 }
 export function useDeleteTyreInventory() {
@@ -129,6 +129,10 @@ export function useDeleteTyreFitment() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("tyre_fitment").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
+export function useUpdateTyreFitment() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async ({ id, ...patch }: Partial<TyreFitment> & { id: string }) => { const { error } = await supabase.from("tyre_fitment").update(patch).eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["tyre-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
+}
 
 /* ---------------- Teeth Purchase ---------------- */
 export function useTeethPurchase() {
@@ -158,6 +162,10 @@ export function useAddTeethPurchase() {
 export function useDeleteTeethPurchase() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("teeth_purchase").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-purchase"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
+}
+export function useUpdateTeethPurchase() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async ({ id, ...patch }: Partial<TeethPurchase> & { id: string }) => { const { error } = await supabase.from("teeth_purchase").update(patch).eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-purchase"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Teeth Fitment ---------------- */
@@ -189,6 +197,10 @@ export function useDeleteTeethFitment() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("teeth_fitment").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
+export function useUpdateTeethFitment() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async ({ id, ...patch }: Partial<TeethFitment> & { id: string }) => { const { error } = await supabase.from("teeth_fitment").update(patch).eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["teeth-fitment"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
+}
 
 /* ---------------- Service Entries ---------------- */
 export function useServiceEntries() {
@@ -218,6 +230,10 @@ export function useAddServiceEntry() {
 export function useDeleteServiceEntry() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from("service_entries").delete().eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["service-entries"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
+}
+export function useUpdateServiceEntry() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async ({ id, ...patch }: Partial<ServiceEntry> & { id: string }) => { const { error } = await supabase.from("service_entries").update(patch).eq("id", id); if (error) throw error; }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["service-entries"] }); qc.invalidateQueries({ queryKey: ["tyre-audit-log"] }); } });
 }
 
 /* ---------------- Audit Log ---------------- */
