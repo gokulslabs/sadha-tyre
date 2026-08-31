@@ -17,4 +17,6 @@ npm run dev
 
 The migrations create only the standalone tyre tables (`vehicles`, `tyres`,
 `tyre_events`, `tyre_inventory`, `tyre_fitment`, `teeth_purchase`,
-`teeth_fitment`, `service_entries`, and `tyre_audit_log`).
+`teeth_fitment`, `service_entries`, and `tyre_audit_log`). The final migration
+also creates the `tyre-documents` Storage bucket and its client policies for
+replacement-document uploads.
