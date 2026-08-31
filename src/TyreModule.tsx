@@ -1538,7 +1538,7 @@ function TyreViewSection() {
             <Truck className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="inline-block border-b-4 border-indigo-400 pb-0.5 text-[22px] font-semibold tracking-[-0.02em]">
+            <h2 className="inline-block border-b-4 border-violet-400 pb-0.5 text-[22px] font-semibold tracking-[-0.02em]">
               Truck Tyre View
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
