@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
-import { Bell, Menu, Search, Settings, Truck, WalletCards } from "lucide-react";
+import { Bell, Menu, MessageCircle, Search, Settings, Truck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,oklch(0.98_0.008_255)_0%,var(--background)_32%)]">
       <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-border/70 bg-card/95 px-4 shadow-sm backdrop-blur md:px-6">
@@ -37,6 +38,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </>
       )}
       <div className="mx-auto max-w-[1600px] p-3 md:p-4 lg:p-5">{children}</div>
+      {chatOpen && <div className="fixed bottom-24 right-5 z-40 w-[280px] rounded-xl border border-border bg-card p-4 shadow-xl"><div className="flex items-center justify-between"><p className="font-semibold">Support</p><button type="button" aria-label="Close support chat" className="text-muted-foreground hover:text-foreground" onClick={() => setChatOpen(false)}>×</button></div><p className="mt-2 text-sm text-muted-foreground">How can we help with your tyre records?</p><div className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">Support chat is ready.</div></div>}
+      <button type="button" aria-label="Toggle support chat" onClick={() => setChatOpen((v) => !v)} className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-700"><MessageCircle className="h-6 w-6" /></button>
     </main>
   );
 }
