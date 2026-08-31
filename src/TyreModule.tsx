@@ -300,6 +300,7 @@ function TyreInventorySection() {
 
 /* ================= Tyre Fitment ================= */
 function TyreFitmentSection() {
+  const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useTyreFitment();
   const add = useAddTyreFitment();
   const [form, setForm] = useState({
@@ -492,7 +493,7 @@ function TyreFitmentSection() {
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
-                  <TableCell>{r.vehicle_id || "—"}</TableCell>
+                  <TableCell>{vehicles.find((v) => v.id === r.vehicle_id)?.vehicle_number || r.vehicle_id || "—"}</TableCell>
                   <TableCell>{r.tyre_no || "—"}</TableCell>
                   <TableCell>{r.driver_name || "—"}</TableCell>
                   <TableCell>{r.tyre_place || "—"}</TableCell>
@@ -711,6 +712,7 @@ function TeethPurchaseSection() {
 }
 
 function TeethFitmentSection() {
+  const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useTeethFitment();
   const add = useAddTeethFitment();
   const [form, setForm] = useState({
@@ -880,7 +882,7 @@ function TeethFitmentSection() {
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
-                  <TableCell>{r.vehicle_id || "—"}</TableCell>
+                  <TableCell>{vehicles.find((v) => v.id === r.vehicle_id)?.vehicle_number || r.vehicle_id || "—"}</TableCell>
                   <TableCell className="text-right">
                     {r.new_teeth_qty}
                   </TableCell>
@@ -1042,6 +1044,7 @@ function AuditLogSection() {
 
 /* ================= Services ================= */
 function ServicesSection() {
+  const { data: vehicles = [] } = useVehicles();
   const { data, isLoading } = useServiceEntries();
   const add = useAddServiceEntry();
   const [form, setForm] = useState({
@@ -1199,7 +1202,7 @@ function ServicesSection() {
               (data ?? []).map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
-                  <TableCell>{r.vehicle_id || "—"}</TableCell>
+                  <TableCell>{vehicles.find((v) => v.id === r.vehicle_id)?.vehicle_number || r.vehicle_id || "—"}</TableCell>
                   <TableCell>{r.driver_name || "—"}</TableCell>
                   <TableCell className="text-right">{r.from_km}</TableCell>
                   <TableCell className="text-right">{r.to_km}</TableCell>
