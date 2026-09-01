@@ -15,8 +15,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!required) return;
     let active = true;
-    supabase.auth.getSession().then(({ data }) => { if (active) { setSignedIn(Boolean(data.session)); setReady(true); } });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)));
+    supabase.auth.getSession().then(({ data }) => { if (active) { setSignedIn(Boolean(data.session)); setReady(true); } }).catch((sessionError) => { if (active) { setError(sessionError instanceof Error ? sessionError.message : "Could not check your session"); setReady(true); } });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { setSignedIn(Boolean(session)); setReady(true); });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [required]);
 
@@ -26,8 +26,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setPending(true); setError("");
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) setError(signInError.message);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) setError(signInError.message);
+    } catch (signInError) { setError(signInError instanceof Error ? signInError.message : "Could not sign in"); }
     setPending(false);
   }
 
