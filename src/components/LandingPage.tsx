@@ -8,7 +8,7 @@ export function LandingPage() {
           <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20"><Truck className="size-5" /></span>
           <span className="text-lg font-bold tracking-tight">SADHA <span className="font-medium text-muted-foreground">TYRE</span></span>
         </a>
-        <a href="/auth" className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary">Client sign in</a>
+        <a href="/auth" className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary">Sign in</a>
       </nav>
 
       <section className="relative mx-auto grid max-w-7xl gap-12 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-20">
