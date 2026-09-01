@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 async function loginIfRequired(page: import("@playwright/test").Page) {
+  const landingCta = page.getByRole("link", { name: "Open tyre management" });
+  if (await landingCta.isVisible().catch(() => false)) await landingCta.click();
   const heading = page.getByRole("heading", { name: "Sign in to Tyre Management" });
   if (!(await heading.isVisible().catch(() => false))) return;
   const email = process.env.E2E_EMAIL;

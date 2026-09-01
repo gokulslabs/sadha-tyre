@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LandingPage } from "@/components/LandingPage";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const required = import.meta.env.VITE_REQUIRE_AUTH === "true";
@@ -23,6 +24,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!required) return <>{children}</>;
   if (!ready) return <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Checking your session…</div>;
   if (signedIn) return <>{children}</>;
+
+  if (window.location.pathname !== "/auth") return <LandingPage />;
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setPending(true); setError("");

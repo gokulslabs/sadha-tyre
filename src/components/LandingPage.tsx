@@ -1,0 +1,32 @@
+import { ArrowRight, CheckCircle2, ClipboardCheck, Gauge, ShieldCheck, Truck } from "lucide-react";
+
+export function LandingPage() {
+  return (
+    <main className="min-h-screen overflow-hidden bg-background">
+      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
+        <a href="/" className="flex items-center gap-3" aria-label="Sadha home">
+          <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20"><Truck className="size-5" /></span>
+          <span className="text-lg font-bold tracking-tight">SADHA <span className="font-medium text-muted-foreground">TYRE</span></span>
+        </a>
+        <a href="/auth" className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary">Client sign in</a>
+      </nav>
+
+      <section className="relative mx-auto grid max-w-7xl gap-12 px-6 pb-20 pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-20">
+        <div className="absolute -left-24 top-12 -z-0 size-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative z-10">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-primary"><span className="size-1.5 rounded-full bg-primary" /> Fleet maintenance, simplified</p>
+          <h1 className="max-w-2xl text-5xl font-bold leading-[1.04] tracking-tight text-foreground sm:text-6xl lg:text-7xl">Know every tyre.<br /><span className="text-primary">Extend every journey.</span></h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">A clear, reliable workspace for fleet teams to track tyre positions, replacements, readings, and maintenance history in one place.</p>
+          <div className="mt-9 flex flex-wrap items-center gap-3"><a href="/auth" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl">Open tyre management <ArrowRight className="size-4" /></a><a href="#features" className="rounded-xl px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground">Explore features</a></div>
+          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground"><span className="inline-flex items-center gap-2"><CheckCircle2 className="size-4 text-success" /> Position-level tracking</span><span className="inline-flex items-center gap-2"><CheckCircle2 className="size-4 text-success" /> Audit-ready history</span></div>
+        </div>
+        <div className="relative z-10 rounded-3xl border border-border bg-card p-4 shadow-lift sm:p-6">
+          <div className="rounded-2xl bg-secondary/70 p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live fleet overview</p><p className="mt-1 text-xl font-bold">Tyre health at a glance</p></div><span className="rounded-lg bg-background px-3 py-2 text-xs font-semibold text-primary">Today</span></div><div className="grid grid-cols-3 gap-3"><div className="rounded-xl bg-background p-4"><Gauge className="size-5 text-primary" /><p className="mt-4 text-2xl font-bold">31</p><p className="text-xs text-muted-foreground">Vehicles</p></div><div className="rounded-xl bg-background p-4"><ShieldCheck className="size-5 text-success" /><p className="mt-4 text-2xl font-bold">94%</p><p className="text-xs text-muted-foreground">Good condition</p></div><div className="rounded-xl bg-background p-4"><ClipboardCheck className="size-5 text-brand" /><p className="mt-4 text-2xl font-bold">200</p><p className="text-xs text-muted-foreground">Tyres tracked</p></div></div><div className="mt-5 rounded-xl bg-background p-4"><div className="mb-4 flex items-center justify-between text-sm"><span className="font-semibold">Fleet condition</span><span className="text-muted-foreground">Updated just now</span></div><div className="flex h-3 overflow-hidden rounded-full bg-muted"><span className="w-[78%] bg-success" /><span className="w-[16%] bg-warning" /><span className="w-[6%] bg-danger" /></div><div className="mt-3 flex justify-between text-xs text-muted-foreground"><span><i className="mr-1 inline-block size-2 rounded-full bg-success" />Good 198</span><span><i className="mr-1 inline-block size-2 rounded-full bg-warning" />Moderate 0</span><span><i className="mr-1 inline-block size-2 rounded-full bg-danger" />Replace 2</span></div></div></div>
+        </div>
+      </section>
+
+      <section id="features" className="border-t border-border bg-card/60 px-6 py-16 lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Everything in one view</p><h2 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">From first fitment to final replacement.</h2><div className="mt-10 grid gap-4 sm:grid-cols-3"><div className="rounded-2xl border border-border bg-background p-6"><Truck className="size-6 text-primary" /><h3 className="mt-5 font-bold">Visual tyre positions</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">See every wheel on 4, 6, 8, 12, 14, and 16-wheeler configurations.</p></div><div className="rounded-2xl border border-border bg-background p-6"><ClipboardCheck className="size-6 text-primary" /><h3 className="mt-5 font-bold">Complete maintenance log</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">Record what changed, when it changed, and the vehicle reading at the time.</p></div><div className="rounded-2xl border border-border bg-background p-6"><ShieldCheck className="size-6 text-primary" /><h3 className="mt-5 font-bold">Accountable operations</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">Keep inventory, services, fitments, and audit history ready for review.</p></div></div></div></section>
+      <footer className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© {new Date().getFullYear()} Sadha Tyre</span><span>Built for safer, better-maintained fleets.</span></footer>
+    </main>
+  );
+}
