@@ -1,8 +1,21 @@
 import { expect, test } from "@playwright/test";
 
+async function loginIfRequired(page: import("@playwright/test").Page) {
+  const heading = page.getByRole("heading", { name: "Sign in to Tyre Management" });
+  if (!(await heading.isVisible().catch(() => false))) return;
+  const email = process.env.E2E_EMAIL;
+  const password = process.env.E2E_PASSWORD;
+  if (!email || !password) throw new Error("Set E2E_EMAIL and E2E_PASSWORD when VITE_REQUIRE_AUTH=true");
+  await page.getByPlaceholder("Email address").fill(email);
+  await page.getByPlaceholder("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: "Truck Tyre View" })).toBeVisible();
+}
+
 test.describe("Sadha Tyre Management", () => {
   test("renders the dashboard and every maintenance module", async ({ page }) => {
     await page.goto("/");
+    await loginIfRequired(page);
     await expect(page.getByRole("heading", { name: "Truck Tyre View" })).toBeVisible();
     for (const label of ["Tyre Inventory", "Tyre Fitment", "Excavator Teeth", "Services", "Audit Log"]) {
       await page.getByRole("button", { name: label, exact: true }).click();
@@ -12,6 +25,7 @@ test.describe("Sadha Tyre Management", () => {
 
   test("validates an empty inventory submission", async ({ page }) => {
     await page.goto("/#inventory");
+    await loginIfRequired(page);
     await page.getByRole("button", { name: "Tyre Inventory", exact: true }).click();
     await page.getByRole("button", { name: "Add stock", exact: true }).click();
     await expect(page.getByText("Enter brand, tyre number, tyre size, and a quantity greater than zero")).toBeVisible();
@@ -19,6 +33,7 @@ test.describe("Sadha Tyre Management", () => {
 
   test("toggles and persists dark mode", async ({ page }) => {
     await page.goto("/");
+    await loginIfRequired(page);
     await page.getByRole("button", { name: /Switch to dark mode|Switch to light mode/ }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);
     await page.reload();
@@ -28,8 +43,9 @@ test.describe("Sadha Tyre Management", () => {
   test("mutation workflow coverage (opt-in against a disposable Supabase project)", async ({ page }) => {
     test.skip(process.env.E2E_MUTATIONS !== "true", "Set E2E_MUTATIONS=true only against disposable test data");
     await page.goto("/");
+    await loginIfRequired(page);
     await page.getByRole("button", { name: "Add vehicle", exact: true }).click();
-    await page.getByLabel("Vehicle number").fill(`E2E-${Date.now()}`);
+    await page.getByPlaceholder("MH12XX0000").fill(`E2E-${Date.now()}`);
     await page.getByRole("button", { name: "Create vehicle", exact: true }).click();
     await expect(page.getByText("Vehicle added")).toBeVisible();
     await page.getByRole("button", { name: "Tyre Fitment", exact: true }).click();
