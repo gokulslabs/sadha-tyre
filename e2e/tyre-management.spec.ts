@@ -15,6 +15,12 @@ async function loginIfRequired(page: import("@playwright/test").Page) {
 }
 
 test.describe("Sadha Tyre Management", () => {
+  test("renders the public landing page with an accessible sign-in action", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /Know every tyre/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  });
+
   test("renders the dashboard and every maintenance module", async ({ page }) => {
     await page.goto("/");
     await loginIfRequired(page);
