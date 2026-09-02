@@ -1630,6 +1630,30 @@ function TyreViewSection() {
     }
   }
 
+  const tyreButton = (t: Tyre) => {
+    const hasData =
+      !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
+    const health = tyreHealth(Number(t.current_km));
+    const cls = healthClasses[health];
+    return (
+      <button
+        key={t.id}
+        type="button"
+        title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`}
+        disabled={t.id.startsWith("preview-")}
+        onClick={() => selectTyre(t)}
+        aria-label={`Tyre ${t.position_code}`}
+        className={`relative h-[110px] w-[110px] shrink-0 rounded-full transition hover:scale-105 ${hasData ? `${cls.fill} ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20 bg-muted/10"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
+      >
+        <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">{t.position_code}</span>
+        <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">{hasData ? shortKm(Number(t.current_km)) : "N/A"}</span>
+        {hasData && <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">{inr(costPerKm(Number(t.cost), Number(t.current_km)))}</span>}
+        {hasData && <span className={`absolute bottom-7 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`} />}
+        {hasData && <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">{t.tyre_type}</span>}
+      </button>
+    );
+  };
+
   const axleBlock = (label: string, list: Tyre[]) => (
     <div key={label} className="p-1">
       <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1641,50 +1665,24 @@ function TyreViewSection() {
           list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, ""))),
         ].map((row, i) => (
           <div key={i} className="flex justify-center gap-2">
-            {row.map((t) => {
-              const hasData =
-                !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
-              const health = tyreHealth(Number(t.current_km));
-              const cls = healthClasses[health];
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`}
-                  disabled={t.id.startsWith("preview-")}
-                  onClick={() => selectTyre(t)}
-                  aria-label={`Tyre ${t.position_code}`}
-                  className={`relative h-[110px] w-[110px] rounded-full transition hover:scale-105 ${hasData ? `${cls.fill} ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20 bg-muted/10"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
-                >
-                  <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">
-                    {t.position_code}
-                  </span>
-                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
-                    {hasData ? shortKm(Number(t.current_km)) : "N/A"}
-                  </span>
-                  {hasData && (
-                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">
-                      {inr(costPerKm(Number(t.cost), Number(t.current_km)))}
-                    </span>
-                  )}
-                  {hasData && (
-                    <span
-                      className={`absolute left-1/2 bottom-7 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`}
-                    />
-                  )}
-                  {hasData && (
-                    <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">
-                      {t.tyre_type}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {row.map(tyreButton)}
           </div>
         ))}
       </div>
     </div>
   );
+
+  const verticalAxleBlock = (label: string, list: Tyre[]) => {
+    const left = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")));
+    const right = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, "")));
+    return (
+      <div key={label} className="grid grid-cols-[1fr_96px_1fr] items-center gap-3 sm:grid-cols-[1fr_140px_1fr] sm:gap-5">
+        <div className="flex justify-end gap-2">{left.map(tyreButton)}</div>
+        <div className="relative flex h-12 items-center justify-center"><div className="absolute inset-x-0 h-px bg-border" /><span className="relative rounded-full border border-border bg-card px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label.replace("AXLE ", "A")}</span></div>
+        <div className="flex justify-start gap-2">{right.map(tyreButton)}</div>
+      </div>
+    );
+  };
 
   if (loadingVehicles)
     return (
@@ -1844,49 +1842,10 @@ function TyreViewSection() {
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border border-border bg-card p-4 shadow-panel">
-        <div className="grid min-w-[1120px] grid-cols-[120px_300px_1fr] items-center gap-3">
-          <div className="space-y-3">
-            {leftAxles.map(([label, list]) => axleBlock(label, list))}
-          </div>
-          <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-gradient-to-r from-zinc-300 via-zinc-400 to-zinc-300 p-4">
-            <span className="text-4xl" role="img" aria-label="truck">
-              🚛
-            </span>
-            <p
-              className="text-center text-xl font-bold tracking-[0.2em] text-zinc-900"
-              style={{ writingMode: "vertical-rl" }}
-            >
-              {showAddVehicle
-                ? newVehicle.vehicle_number || "NEW VEHICLE"
-                : vehicle.vehicle_number}
-            </p>
-            <div className="grid w-full grid-cols-2 gap-3 border-t border-zinc-500/40 pt-2 text-center text-xs text-zinc-800">
-              <div>
-                <span className="text-zinc-700">AXLES</span>
-                <br />
-                <strong className="text-xl">
-                  {(showAddVehicle ? axlePlan(Number(newVehicle.wheels)) : plan)
-                    .steer +
-                    (showAddVehicle
-                      ? axlePlan(Number(newVehicle.wheels))
-                      : plan
-                    ).rear}
-                </strong>
-              </div>
-              <div>
-                <span className="text-zinc-700">READING</span>
-                <br />
-                <strong className="text-base">
-                  {showAddVehicle
-                    ? "0 km"
-                    : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}
-                </strong>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            {rightAxles.map(([label, list]) => axleBlock(label, list))}
-          </div>
+        <div className="mx-auto min-w-[720px] max-w-[980px]">
+          <div className="mx-auto mb-4 flex w-fit flex-col items-center gap-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground"><span className="text-lg">▲</span><span>Front of vehicle</span></div>
+          <div className="mb-5 flex items-center justify-center gap-4 rounded-2xl border border-border bg-secondary/60 px-5 py-3"><span className="text-3xl" role="img" aria-label="truck">🚛</span><div><p className="text-sm font-bold">{showAddVehicle ? newVehicle.vehicle_number || "NEW VEHICLE" : vehicle.vehicle_number}</p><p className="text-[11px] text-muted-foreground">Top-down vehicle layout · {showAddVehicle ? "0 km" : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}</p></div></div>
+          <div className="space-y-4 rounded-2xl border border-dashed border-border bg-muted/20 px-3 py-5 sm:px-8">{displayGroups.map(([label, list]) => verticalAxleBlock(label, list))}</div>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
           {showAddVehicle
