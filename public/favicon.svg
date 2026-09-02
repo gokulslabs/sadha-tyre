@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sadha Tyre">
+  <rect width="64" height="64" rx="14" fill="#1d4ed8"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+    <path d="M10 38V24a3 3 0 0 1 3-3h25a3 3 0 0 1 3 3v14H10Z"/>
+    <path d="M41 28h8l6 7v3H41z"/>
+    <circle cx="20" cy="41" r="5" fill="#1d4ed8"/>
+    <circle cx="48" cy="41" r="5" fill="#1d4ed8"/>
+    <path d="M10 41h5m10 0h18m10 0h2"/>
+  </g>
+</svg>
