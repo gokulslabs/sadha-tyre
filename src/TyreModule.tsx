@@ -1672,14 +1672,14 @@ function TyreViewSection() {
     </div>
   );
 
-  const verticalAxleBlock = (label: string, list: Tyre[]) => {
+  const topDownAxleBlock = (label: string, list: Tyre[]) => {
     const left = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")));
     const right = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, "")));
     return (
-      <div key={label} className="grid grid-cols-[1fr_96px_1fr] items-center gap-3 sm:grid-cols-[1fr_140px_1fr] sm:gap-5">
-        <div className="flex justify-end gap-2">{left.map(tyreButton)}</div>
-        <div className="relative flex h-12 items-center justify-center"><div className="absolute inset-x-0 h-px bg-border" /><span className="relative rounded-full border border-border bg-card px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label.replace("AXLE ", "A")}</span></div>
-        <div className="flex justify-start gap-2">{right.map(tyreButton)}</div>
+      <div key={label} className="relative flex min-w-[120px] flex-col items-center gap-2">
+        <div className="flex min-h-[110px] items-end gap-1">{left.map(tyreButton)}</div>
+        <div className="relative z-10 flex h-16 w-full items-center justify-center"><div className="absolute inset-x-0 h-2 rounded-full bg-zinc-400/80 shadow-inner" /><span className="relative rounded-full border border-border bg-card px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label.replace("AXLE ", "A")}</span></div>
+        <div className="flex min-h-[110px] items-start gap-1">{right.map(tyreButton)}</div>
       </div>
     );
   };
@@ -1842,10 +1842,13 @@ function TyreViewSection() {
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border border-border bg-card p-4 shadow-panel">
-        <div className="mx-auto min-w-[720px] max-w-[980px]">
-          <div className="mx-auto mb-4 flex w-fit flex-col items-center gap-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground"><span className="text-lg">▲</span><span>Front of vehicle</span></div>
-          <div className="mb-5 flex items-center justify-center gap-4 rounded-2xl border border-border bg-secondary/60 px-5 py-3"><span className="text-3xl" role="img" aria-label="truck">🚛</span><div><p className="text-sm font-bold">{showAddVehicle ? newVehicle.vehicle_number || "NEW VEHICLE" : vehicle.vehicle_number}</p><p className="text-[11px] text-muted-foreground">Top-down vehicle layout · {showAddVehicle ? "0 km" : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}</p></div></div>
-          <div className="space-y-4 rounded-2xl border border-dashed border-border bg-muted/20 px-3 py-5 sm:px-8">{displayGroups.map(([label, list]) => verticalAxleBlock(label, list))}</div>
+        <div className="mx-auto min-w-[980px] max-w-[1500px]">
+          <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground"><span className="text-lg">←</span><span>Front / cab</span><span className="ml-auto">Rear</span><span className="text-lg">→</span></div>
+          <div className="relative flex min-h-[330px] items-stretch rounded-2xl border border-dashed border-border bg-muted/20 p-4 sm:p-6">
+            <div className="z-20 flex w-[150px] shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/10 p-4 text-center shadow-sm"><span className="text-5xl" role="img" aria-label="truck cab">🚛</span><p className="mt-3 text-xs font-bold uppercase tracking-wider text-primary">Cab</p><p className="mt-1 text-[10px] text-muted-foreground">{showAddVehicle ? newVehicle.vehicle_number || "NEW VEHICLE" : vehicle.vehicle_number}</p></div>
+            <div className="relative min-w-0 flex-1 overflow-visible rounded-r-2xl border-y-2 border-r-2 border-zinc-300 bg-gradient-to-r from-zinc-200 via-zinc-300 to-zinc-200 px-5 py-2 dark:border-zinc-600 dark:from-zinc-700 dark:via-zinc-600 dark:to-zinc-700"><div className="pointer-events-none absolute inset-x-8 top-1/2 h-24 -translate-y-1/2 rounded-xl border border-zinc-400/60 bg-zinc-300/50 dark:border-zinc-500/60 dark:bg-zinc-700/50" /><div className="relative z-10 flex h-full items-center justify-around gap-4">{displayGroups.map(([label, list]) => topDownAxleBlock(label, list))}</div></div>
+          </div>
+          <div className="mt-4 flex justify-center gap-6 text-xs text-muted-foreground"><span>Top = left side</span><span>Bottom = right side</span><span>{showAddVehicle ? "0 km" : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}</span></div>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
           {showAddVehicle
