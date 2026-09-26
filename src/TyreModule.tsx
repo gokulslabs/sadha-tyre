@@ -154,7 +154,7 @@ function Field({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={controlId}>{label}{required && <span aria-hidden="true" className="ml-1 text-destructive">*</span>}</Label>
-      {labelFirstControl(children)}
+      {Children.map(children, labelFirstControl)}
     </div>
   );
 }
