@@ -195,6 +195,7 @@ export type Database = {
           old_tyre_stock: string | null
           remarks: string | null
           tyre_no: string | null
+          tyre_inventory_id: string | null
           tyre_place: string | null
           tyre_size: string | null
           updated_at: string
@@ -211,6 +212,7 @@ export type Database = {
           old_tyre_stock?: string | null
           remarks?: string | null
           tyre_no?: string | null
+          tyre_inventory_id?: string | null
           tyre_place?: string | null
           tyre_size?: string | null
           updated_at?: string
@@ -227,6 +229,7 @@ export type Database = {
           old_tyre_stock?: string | null
           remarks?: string | null
           tyre_no?: string | null
+          tyre_inventory_id?: string | null
           tyre_place?: string | null
           tyre_size?: string | null
           updated_at?: string
@@ -238,6 +241,13 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tyre_fitment_tyre_inventory_id_fkey"
+            columns: ["tyre_inventory_id"]
+            isOneToOne: false
+            referencedRelation: "tyre_inventory"
             referencedColumns: ["id"]
           },
         ]
@@ -319,6 +329,75 @@ export type Database = {
           },
         ]
       }
+      tyre_maintenance: {
+        Row: {
+          amount: number
+          condition_after: string | null
+          created_at: string
+          damage_notes: string | null
+          document_path: string | null
+          driver_name: string | null
+          entry_date: string
+          expense_account: string | null
+          id: string
+          km_reading: number
+          maintenance_type: string
+          next_alert_date: string | null
+          next_alert_km: number | null
+          tread_depth_mm: number | null
+          organization_id: string
+          payment_mode: string
+          remark: string | null
+          tyre_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          condition_after?: string | null
+          created_at?: string
+          damage_notes?: string | null
+          document_path?: string | null
+          driver_name?: string | null
+          entry_date?: string
+          expense_account?: string | null
+          id?: string
+          km_reading?: number
+          maintenance_type: string
+          next_alert_date?: string | null
+          next_alert_km?: number | null
+          tread_depth_mm?: number | null
+          organization_id?: string
+          payment_mode?: string
+          remark?: string | null
+          tyre_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          condition_after?: string | null
+          document_path?: string | null
+          damage_notes?: string | null
+          driver_name?: string | null
+          entry_date?: string
+          expense_account?: string | null
+          km_reading?: number
+          maintenance_type?: string
+          next_alert_date?: string | null
+          next_alert_km?: number | null
+          tread_depth_mm?: number | null
+          payment_mode?: string
+          remark?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tyre_maintenance_tyre_id_fkey"
+            columns: ["tyre_id"]
+            isOneToOne: false
+            referencedRelation: "tyres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tyre_audit_log: {
         Row: {
           action: string
@@ -364,6 +443,7 @@ export type Database = {
         Row: {
           axle_label: string | null
           brand: string | null
+          condition: string
           cost: number
           created_at: string
           current_km: number
@@ -374,6 +454,7 @@ export type Database = {
           remark: string | null
           serial_no: string | null
           status: string
+          tread_depth_mm: number | null
           tyre_type: string
           updated_at: string
           vehicle_id: string
@@ -381,6 +462,7 @@ export type Database = {
         Insert: {
           axle_label?: string | null
           brand?: string | null
+          condition?: string
           cost?: number
           created_at?: string
           current_km?: number
@@ -391,6 +473,7 @@ export type Database = {
           remark?: string | null
           serial_no?: string | null
           status?: string
+          tread_depth_mm?: number | null
           tyre_type?: string
           updated_at?: string
           vehicle_id: string
@@ -398,6 +481,7 @@ export type Database = {
         Update: {
           axle_label?: string | null
           brand?: string | null
+          condition?: string
           cost?: number
           created_at?: string
           current_km?: number
@@ -408,6 +492,7 @@ export type Database = {
           remark?: string | null
           serial_no?: string | null
           status?: string
+          tread_depth_mm?: number | null
           tyre_type?: string
           updated_at?: string
           vehicle_id?: string
@@ -448,6 +533,7 @@ export type Database = {
           created_at: string
           id: string
           odometer: number
+          odometer_updated_at: string
           updated_at: string
           vehicle_number: string
           wheels: number
@@ -456,6 +542,7 @@ export type Database = {
           created_at?: string
           id?: string
           odometer?: number
+          odometer_updated_at?: string
           updated_at?: string
           vehicle_number: string
           wheels?: number
@@ -464,6 +551,7 @@ export type Database = {
           created_at?: string
           id?: string
           odometer?: number
+          odometer_updated_at?: string
           updated_at?: string
           vehicle_number?: string
           wheels?: number

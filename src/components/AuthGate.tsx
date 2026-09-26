@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LandingPage } from "@/components/LandingPage";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -36,5 +37,5 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     setPending(false);
   }
 
-  return <main className="grid min-h-screen place-items-center bg-background p-4"><form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lift"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary">SADHA</p><h1 className="mt-1 text-2xl font-bold">Sign in to Tyre Management</h1><p className="mt-1 text-sm text-muted-foreground">Use your client account to access fleet records.</p></div><Input type="email" required placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} /><Input type="password" required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button className="w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</Button></form></main>;
+  return <main className="grid min-h-screen place-items-center bg-background p-4"><form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lift"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary">SADHA</p><h1 className="mt-1 text-2xl font-bold">Sign in to Tyre Management</h1><p className="mt-1 text-sm text-muted-foreground">Use your client account to access fleet records.</p></div><div className="space-y-1.5"><Label htmlFor="auth-email">Email address</Label><Input id="auth-email" type="email" autoComplete="username" required placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="auth-password">Password</Label><Input id="auth-password" type="password" autoComplete="current-password" required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button className="w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</Button></form></main>;
 }

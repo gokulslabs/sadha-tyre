@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { axlePlan, costPerKm, shortKm, tyreHealth, tyrePositions } from "./tyres";
+import { axlePlan, costPerKm, shortKm, tyreHealth, tyrePositions, WHEEL_CONFIGS } from "./tyres";
 
 describe("tyre configuration helpers", () => {
   it.each([[4, 4], [6, 6], [8, 8], [12, 12], [14, 14], [16, 16]])("generates %i positions", (wheels, expected) => {
     expect(tyrePositions(wheels)).toHaveLength(expected);
+  });
+
+  it.each(WHEEL_CONFIGS)("creates exactly %i unique tyre positions", (wheels) => {
+    const positions = tyrePositions(wheels).map(({ pos }) => pos);
+    expect(positions).toHaveLength(wheels);
+    expect(new Set(positions).size).toBe(wheels);
   });
 
   it("keeps TMS special axle layouts", () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Children, cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Plus,
   Package,
@@ -8,9 +8,15 @@ import {
   History,
   Truck,
   Wand2,
+  ClipboardCheck,
+  AlertTriangle,
+  List,
+  LayoutPanelTop,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
+import { FleetOverview } from "@/components/FleetOverview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +49,6 @@ import {
   type Tyre,
 } from "@/hooks/useTyres";
 import {
-  axlePlan,
   healthClasses,
   shortKm,
   tyreHealth,
@@ -73,6 +78,8 @@ import {
   useDeleteServiceEntry,
   useUpdateServiceEntry,
   useServiceEntries,
+  useAddTyreMaintenance,
+  useTyreMaintenance,
   useTeethFitment,
   useTeethPurchase,
   useTyreAuditLog,
@@ -84,15 +91,20 @@ import {
   type TeethPurchase,
   type TeethFitment,
   type ServiceEntry,
+  type TyreMaintenance,
 } from "@/hooks/useTyreModule";
 import { supabase } from "@/integrations/supabase/client";
 
 function VehicleSelect({
   value,
   onChange,
+  id,
+  required,
 }: {
   value: string;
   onChange: (v: string) => void;
+  id?: string;
+  required?: boolean;
 }) {
   const { data: vehicles } = useVehicles();
   return (
@@ -100,7 +112,7 @@ function VehicleSelect({
       value={value || "none"}
       onValueChange={(v) => onChange(v === "none" ? "" : v)}
     >
-      <SelectTrigger>
+      <SelectTrigger id={id} aria-required={required}>
         <SelectValue placeholder="Select vehicle" />
       </SelectTrigger>
       <SelectContent>
@@ -118,16 +130,47 @@ function VehicleSelect({
 function Field({
   label,
   children,
+  required = false,
 }: {
   label: string;
   children: React.ReactNode;
+  required?: boolean;
 }) {
+  const controlId = useId();
+  function labelFirstControl(node: ReactNode): ReactNode {
+    if (!isValidElement(node)) return node;
+    if (node.type === Input || node.type === SelectTrigger || node.type === VehicleSelect) {
+      return cloneElement(node as React.ReactElement<{ id?: string; required?: boolean; "aria-required"?: boolean }>, { id: controlId, "aria-required": required, ...(node.type === VehicleSelect ? { required } : {}) });
+    }
+    const props = (node as React.ReactElement<{ children?: ReactNode }>).props;
+    if (props.children !== undefined) {
+      const nested = props.children;
+      return cloneElement(node as React.ReactElement<{ children?: ReactNode }>, {
+        children: Children.map(nested, labelFirstControl),
+      });
+    }
+    return node;
+  }
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={controlId}>{label}{required && <span aria-hidden="true" className="ml-1 text-destructive">*</span>}</Label>
+      {labelFirstControl(children)}
     </div>
   );
+}
+
+function SignedDocumentLink({ path, children = "Open" }: { path: string; children?: ReactNode }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    void supabase.storage.from("tyre-documents").createSignedUrl(path, 300).then(({ data, error }) => {
+      if (active && !error && data?.signedUrl) setUrl(data.signedUrl);
+    });
+    return () => { active = false; };
+  }, [path]);
+  return url
+    ? <a href={url} target="_blank" rel="noreferrer" className="text-primary underline">{children}</a>
+    : <span className="text-muted-foreground" title="Document link is loading or unavailable">…</span>;
 }
 
 function displayDate(value?: string | null) {
@@ -163,6 +206,38 @@ function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-md bg-card shadow-panel">{children}</div>;
 }
 
+function QueryErrorRow({ colSpan, onRetry }: { colSpan: number; onRetry: () => void }) {
+  return <TableRow><TableCell colSpan={colSpan} className="py-8 text-center"><p role="alert" className="text-sm text-destructive">Could not load these records. Check your connection and try again.</p><Button type="button" className="mt-3" variant="outline" size="sm" onClick={onRetry}>Retry</Button></TableCell></TableRow>;
+}
+
+function QueryErrorBanner({ label, onRetry }: { label: string; onRetry: () => void }) {
+  return <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span className="text-destructive">Could not load {label}. Some information may be unavailable.</span><Button type="button" variant="outline" size="sm" onClick={onRetry}>Retry</Button></div>;
+}
+
+function useAccessibleDialog(open: boolean, onClose: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = ref.current;
+    dialog?.focus();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") { event.preventDefault(); onCloseRef.current(); return; }
+      if (event.key !== "Tab" || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) { event.preventDefault(); dialog.focus(); return; }
+      const first = focusable[0]; const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("keydown", handleKeyDown); previous?.focus?.(); };
+  }, [open]);
+  return ref;
+}
+
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -174,11 +249,11 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TableToolbar({ query, onQueryChange, total, shown, page = 1, pages = 1, onPageChange, fromDate, toDate, onFromDateChange, onToDateChange, sort, onSortChange }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number; page?: number; pages?: number; onPageChange?: (page: number) => void; fromDate?: string; toDate?: string; onFromDateChange?: (value: string) => void; onToDateChange?: (value: string) => void; sort?: "newest" | "oldest"; onSortChange?: (value: "newest" | "oldest") => void }) {
+function TableToolbar({ query, onQueryChange, total, shown, loading = false, page = 1, pages = 1, onPageChange, fromDate, toDate, onFromDateChange, onToDateChange, sort, onSortChange }: { query: string; onQueryChange: (value: string) => void; total: number; shown: number; loading?: boolean; page?: number; pages?: number; onPageChange?: (page: number) => void; fromDate?: string; toDate?: string; onFromDateChange?: (value: string) => void; onToDateChange?: (value: string) => void; sort?: "newest" | "oldest"; onSortChange?: (value: "newest" | "oldest") => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/70 bg-card px-3 py-2">
       <div className="flex flex-wrap items-center gap-2"><Input className="h-9 max-w-sm" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search records…" aria-label="Search records" /><Input className="h-9 w-36" type="date" value={fromDate ?? ""} onChange={(e) => onFromDateChange?.(e.target.value)} aria-label="From date" /><Input className="h-9 w-36" type="date" value={toDate ?? ""} onChange={(e) => onToDateChange?.(e.target.value)} aria-label="To date" /></div>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><select aria-label="Sort records" className="h-9 rounded-md border border-input bg-background px-2" value={sort ?? "newest"} onChange={(e) => onSortChange?.(e.target.value as "newest" | "oldest")}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select><span>Showing {shown} of {total}</span>{pages > 1 && <><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>Previous</Button><span>Page {page} / {pages}</span><Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange?.(page + 1)}>Next</Button></>}</div>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><select aria-label="Sort records" className="h-9 rounded-md border border-input bg-background px-2" value={sort ?? "newest"} onChange={(e) => onSortChange?.(e.target.value as "newest" | "oldest")}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select><span aria-live="polite">{loading ? "Loading records…" : `Showing ${shown} of ${total}`}</span>{!loading && pages > 1 && <><Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>Previous</Button><span>Page {page} / {pages}</span><Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange?.(page + 1)}>Next</Button></>}</div>
     </div>
   );
 }
@@ -193,14 +268,15 @@ function filterRows<T extends object>(rows: T[], query: string, fromDate = "", t
   return [...filtered].sort((a, b) => { const getDate = (row: T) => String((row as Record<string, unknown>).entry_date ?? (row as Record<string, unknown>).changed_at ?? ""); const result = getDate(b).localeCompare(getDate(a)); return sort === "newest" ? result : -result; });
 }
 
-function RecordEditDialog({ title, row, fields, pending, onClose, onSave }: { title: string; row: Record<string, unknown>; fields: { key: string; label: string; type?: string }[]; pending: boolean; onClose: () => void; onSave: (patch: Record<string, unknown>) => void }) {
+function RecordEditDialog({ title, row, fields, pending, onClose, onSave }: { title: string; row: Record<string, unknown>; fields: { key: string; label: string; type?: string }[]; pending: boolean; onClose: () => void; onSave: (patch: Record<string, unknown>) => void | Promise<void> }) {
   const [draft, setDraft] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((field) => [field.key, String(row[field.key] ?? "")] )));
-  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm"><form className="w-full max-w-xl space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lift" onSubmit={(event) => { event.preventDefault(); onSave(Object.fromEntries(fields.map((field) => [field.key, field.type === "number" ? Number(draft[field.key]) || 0 : draft[field.key] || null]))); }}><div><h3 className="text-xl font-bold">Edit {title}</h3><p className="mt-1 text-sm text-muted-foreground">Changes are recorded in the audit log.</p></div><div className="grid gap-3 sm:grid-cols-2">{fields.map((field) => <Field key={field.key} label={field.label}><Input type={field.type ?? "text"} value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} /></Field>)}</div><div className="flex justify-end gap-2 border-t border-border pt-4"><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button></div></form></div>;
+  const dialogRef = useAccessibleDialog(true, onClose);
+  return <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="record-edit-title" tabIndex={-1} className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm"><form className="w-full max-w-xl space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lift" onSubmit={async (event) => { event.preventDefault(); try { await onSave(Object.fromEntries(fields.map((field) => [field.key, field.type === "number" ? Number(draft[field.key]) || 0 : draft[field.key] || null]))); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save changes"); } }}><div><h3 id="record-edit-title" className="text-xl font-bold">Edit {title}</h3><p className="mt-1 text-sm text-muted-foreground">Changes are recorded in the audit log.</p></div><div className="grid gap-3 sm:grid-cols-2">{fields.map((field) => <Field key={field.key} label={field.label}><Input type={field.type ?? "text"} value={draft[field.key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))} /></Field>)}</div><div className="flex justify-end gap-2 border-t border-border pt-4"><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button></div></form></div>;
 }
 
 /* ================= Tyre Inventory ================= */
 function TyreInventorySection() {
-  const { data, isLoading } = useTyreInventory();
+  const { data, isLoading, isError, refetch } = useTyreInventory();
   const add = useAddTyreInventory();
   const remove = useDeleteTyreInventory();
   const update = useUpdateTyreInventory();
@@ -252,7 +328,7 @@ function TyreInventorySection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-inventory.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} loading={isLoading} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Entry type">
@@ -281,7 +357,7 @@ function TyreInventorySection() {
               }
             />
           </Field>
-          <Field label="Brand name">
+          <Field label="Brand name" required>
             <Input
               value={form.brand}
               onChange={(e) =>
@@ -289,7 +365,7 @@ function TyreInventorySection() {
               }
             />
           </Field>
-          <Field label="Tyre no">
+          <Field label="Tyre no" required>
             <Input
               value={form.tyre_no}
               onChange={(e) =>
@@ -297,7 +373,7 @@ function TyreInventorySection() {
               }
             />
           </Field>
-          <Field label="Tyre size">
+          <Field label="Tyre size" required>
             <Input
               value={form.tyre_size}
               onChange={(e) =>
@@ -305,7 +381,7 @@ function TyreInventorySection() {
               }
             />
           </Field>
-          <Field label="Quantity (no of tyres)">
+          <Field label="Quantity (no of tyres)" required>
             <Input
               type="number"
               min={0}
@@ -324,7 +400,7 @@ function TyreInventorySection() {
       </Card>
 
       <Card>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -343,7 +419,7 @@ function TyreInventorySection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : visibleData.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={7} onRetry={() => { void refetch(); }} /> : visibleData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -368,7 +444,7 @@ function TyreInventorySection() {
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
       {editing && <RecordEditDialog title="tyre inventory" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "entry_type", label: "Entry type" }, { key: "brand", label: "Brand" }, { key: "tyre_no", label: "Tyre number" }, { key: "tyre_size", label: "Tyre size" }, { key: "quantity", label: "Quantity", type: "number" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Inventory updated"); }} />}
     </div>
@@ -378,7 +454,8 @@ function TyreInventorySection() {
 /* ================= Tyre Fitment ================= */
 function TyreFitmentSection() {
   const { data: vehicles = [] } = useVehicles();
-  const { data, isLoading } = useTyreFitment();
+  const { data, isLoading, isError, refetch } = useTyreFitment();
+  const { data: inventory = [] } = useTyreInventory();
   const add = useAddTyreFitment();
   const remove = useDeleteTyreFitment();
   const update = useUpdateTyreFitment();
@@ -400,14 +477,20 @@ function TyreFitmentSection() {
     remarks: "",
     old_tyre_status: "NEW",
     old_tyre_stock: "",
+    tyre_inventory_id: "",
   });
+  const stockUsed = useMemo(() => (data ?? []).reduce<Record<string, number>>((counts, row) => {
+    if (row.tyre_inventory_id) counts[row.tyre_inventory_id] = (counts[row.tyre_inventory_id] ?? 0) + 1;
+    return counts;
+  }, {}), [data]);
+  const availableStock = inventory.filter((item) => Number(item.quantity) > (stockUsed[item.id] ?? 0));
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicle_id);
   const filteredData = useMemo(() => filterRows(data ?? [], query, fromDate, toDate, sort), [data, query, fromDate, toDate, sort]);
   const pages = Math.max(1, Math.ceil(filteredData.length / 25));
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
-    if (!form.vehicle_id || !form.tyre_place || Number(form.km) < 0) {
+    if (!form.vehicle_id || !form.tyre_place || !form.km.trim() || Number(form.km) < 0) {
       toast.error("Select a vehicle and wheel position, then enter a valid KM reading");
       return;
     }
@@ -424,6 +507,7 @@ function TyreFitmentSection() {
         remarks: form.remarks.trim() || null,
         old_tyre_status: form.old_tyre_status,
         old_tyre_stock: form.old_tyre_stock.trim() || null,
+        tyre_inventory_id: form.tyre_inventory_id || null,
       });
       toast.success("Fitment recorded");
       setForm((f) => ({
@@ -436,6 +520,7 @@ function TyreFitmentSection() {
         km: "",
         remarks: "",
         old_tyre_stock: "",
+        tyre_inventory_id: "",
       }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not record fitment");
@@ -445,9 +530,10 @@ function TyreFitmentSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-fitment.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} loading={isLoading} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Tyre from available stock (optional)"><Select value={form.tyre_inventory_id || "manual"} onValueChange={(value) => { const stockItem = inventory.find((item) => item.id === value); setForm((current) => ({ ...current, tyre_inventory_id: value === "manual" ? "" : value, brand: stockItem?.brand ?? current.brand, tyre_no: stockItem?.tyre_no ?? current.tyre_no, tyre_size: stockItem?.tyre_size ?? current.tyre_size })); }}><SelectTrigger><SelectValue placeholder="Enter tyre details manually" /></SelectTrigger><SelectContent><SelectItem value="manual">Manual entry — not from stock</SelectItem>{availableStock.map((item) => <SelectItem key={item.id} value={item.id}>{item.brand || "Unbranded"} · {item.tyre_no || "No tyre no."} · {item.tyre_size || "No size"} · {Number(item.quantity) - (stockUsed[item.id] ?? 0)} available</SelectItem>)}</SelectContent></Select><p className="text-xs text-muted-foreground">Choosing stock links one available unit to this fitment.</p></Field>
           <Field label="Date">
             <Input
               type="date"
@@ -460,6 +546,7 @@ function TyreFitmentSection() {
           <Field label="Brand name">
             <Input
               value={form.brand}
+              readOnly={Boolean(form.tyre_inventory_id)}
               onChange={(e) =>
                 setForm((f) => ({ ...f, brand: e.target.value }))
               }
@@ -468,6 +555,7 @@ function TyreFitmentSection() {
           <Field label="Tyre no">
             <Input
               value={form.tyre_no}
+              readOnly={Boolean(form.tyre_inventory_id)}
               onChange={(e) =>
                 setForm((f) => ({ ...f, tyre_no: e.target.value }))
               }
@@ -476,12 +564,13 @@ function TyreFitmentSection() {
           <Field label="Tyre size">
             <Input
               value={form.tyre_size}
+              readOnly={Boolean(form.tyre_inventory_id)}
               onChange={(e) =>
                 setForm((f) => ({ ...f, tyre_size: e.target.value }))
               }
             />
           </Field>
-          <Field label="Vehicle no">
+          <Field label="Vehicle no" required>
             <VehicleSelect
               value={form.vehicle_id}
               onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
@@ -495,7 +584,7 @@ function TyreFitmentSection() {
               }
             />
           </Field>
-          <Field label="Tyre place / wheel position">
+          <Field label="Tyre place / wheel position" required>
             <Select
               value={form.tyre_place || "none"}
               onValueChange={(v) => setForm((f) => ({ ...f, tyre_place: v === "none" ? "" : v }))}
@@ -509,7 +598,7 @@ function TyreFitmentSection() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="KM">
+          <Field label="KM" required>
             <Input
               type="number"
               min={0}
@@ -561,7 +650,7 @@ function TyreFitmentSection() {
       </Card>
 
       <Card>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -582,7 +671,7 @@ function TyreFitmentSection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : visibleData.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={9} onRetry={() => { void refetch(); }} /> : visibleData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={9}
@@ -607,7 +696,7 @@ function TyreFitmentSection() {
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
       {editing && <RecordEditDialog title="tyre fitment" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "brand", label: "Brand" }, { key: "tyre_no", label: "Tyre number" }, { key: "tyre_size", label: "Tyre size" }, { key: "driver_name", label: "Driver" }, { key: "tyre_place", label: "Wheel position" }, { key: "km", label: "KM", type: "number" }, { key: "remarks", label: "Remarks" }, { key: "old_tyre_status", label: "Old tyre status" }, { key: "old_tyre_stock", label: "Old tyre stock" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Fitment updated"); }} />}
     </div>
@@ -616,16 +705,21 @@ function TyreFitmentSection() {
 
 /* ================= Teeth (Purchase + Fitment) ================= */
 function TeethSection() {
+  const [section, setSection] = useState<"purchase" | "fitment">("purchase");
   return (
-    <div className="space-y-6">
-      <TeethPurchaseSection />
-      <TeethFitmentSection />
+    <div className="space-y-4">
+      <div role="tablist" aria-label="Excavator teeth records" className="flex w-fit gap-1 rounded-lg border border-border bg-card p-1">
+        <button type="button" role="tab" aria-selected={section === "purchase"} aria-controls="teeth-purchase-panel" onClick={() => setSection("purchase")} className={`rounded-md px-4 py-2 text-sm font-medium ${section === "purchase" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>Purchases</button>
+        <button type="button" role="tab" aria-selected={section === "fitment"} aria-controls="teeth-fitment-panel" onClick={() => setSection("fitment")} className={`rounded-md px-4 py-2 text-sm font-medium ${section === "fitment" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>Fitment</button>
+      </div>
+      <section id="teeth-purchase-panel" role="tabpanel" hidden={section !== "purchase"} aria-label="Teeth purchases"><TeethPurchaseSection /></section>
+      <section id="teeth-fitment-panel" role="tabpanel" hidden={section !== "fitment"} aria-label="Teeth fitment"><TeethFitmentSection /></section>
     </div>
   );
 }
 
 function TeethPurchaseSection() {
-  const { data, isLoading } = useTeethPurchase();
+  const { data, isLoading, isError, refetch } = useTeethPurchase();
   const add = useAddTeethPurchase();
   const remove = useDeleteTeethPurchase();
   const update = useUpdateTeethPurchase();
@@ -688,7 +782,7 @@ function TeethPurchaseSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Purchase
       </h3>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} loading={isLoading} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Date">
@@ -700,7 +794,7 @@ function TeethPurchaseSection() {
               }
             />
           </Field>
-          <Field label="Purchase shop">
+          <Field label="Purchase shop" required>
             <Input
               value={form.purchase_shop}
               onChange={(e) =>
@@ -708,7 +802,7 @@ function TeethPurchaseSection() {
               }
             />
           </Field>
-          <Field label="Teeth model">
+          <Field label="Teeth model" required>
             <Input
               value={form.teeth_model}
               onChange={(e) =>
@@ -716,7 +810,7 @@ function TeethPurchaseSection() {
               }
             />
           </Field>
-          <Field label="Qty">
+          <Field label="Qty" required>
             <Input
               type="number"
               min={0}
@@ -782,7 +876,7 @@ function TeethPurchaseSection() {
       </Card>
 
       <Card>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -803,7 +897,7 @@ function TeethPurchaseSection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : visibleData.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={9} onRetry={() => { void refetch(); }} /> : visibleData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={9}
@@ -828,7 +922,7 @@ function TeethPurchaseSection() {
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
       {editing && <RecordEditDialog title="teeth purchase" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "purchase_shop", label: "Purchase shop" }, { key: "teeth_model", label: "Teeth model" }, { key: "qty", label: "Quantity", type: "number" }, { key: "rock_teeth", label: "Rock teeth", type: "number" }, { key: "washer", label: "Washer", type: "number" }, { key: "lock_pin", label: "Lock pin", type: "number" }, { key: "storage_place", label: "Storage place" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Teeth purchase updated"); }} />}
     </div>
@@ -837,7 +931,7 @@ function TeethPurchaseSection() {
 
 function TeethFitmentSection() {
   const { data: vehicles = [] } = useVehicles();
-  const { data, isLoading } = useTeethFitment();
+  const { data, isLoading, isError, refetch } = useTeethFitment();
   const add = useAddTeethFitment();
   const remove = useDeleteTeethFitment();
   const update = useUpdateTeethFitment();
@@ -903,7 +997,7 @@ function TeethFitmentSection() {
       <h3 className="text-base font-semibold text-foreground">
         Excavator Teeth — Fitment
       </h3>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} loading={isLoading} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -915,13 +1009,13 @@ function TeethFitmentSection() {
               }
             />
           </Field>
-          <Field label="Vehicle no">
+          <Field label="Vehicle no" required>
             <VehicleSelect
               value={form.vehicle_id}
               onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
             />
           </Field>
-          <Field label="New teeth qty">
+          <Field label="New teeth qty" required>
             <Input
               type="number"
               min={0}
@@ -990,7 +1084,7 @@ function TeethFitmentSection() {
       </Card>
 
       <Card>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -1011,7 +1105,7 @@ function TeethFitmentSection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : visibleData.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={9} onRetry={() => { void refetch(); }} /> : visibleData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={9}
@@ -1038,7 +1132,7 @@ function TeethFitmentSection() {
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
       {editing && <RecordEditDialog title="teeth fitment" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "new_teeth_qty", label: "New teeth quantity", type: "number" }, { key: "incharge_name", label: "Incharge" }, { key: "operator_name", label: "Operator" }, { key: "km", label: "KM", type: "number" }, { key: "hours", label: "Hours", type: "number" }, { key: "place", label: "Place" }, { key: "old_teeth_status", label: "Old teeth status" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Teeth fitment updated"); }} />}
     </div>
@@ -1047,6 +1141,7 @@ function TeethFitmentSection() {
 
 /* ================= Audit Log ================= */
 function diffSummary(log: TyreAuditLog): string {
+  const label = (field: string) => field.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
   const oldD = (log.old_data ?? {}) as Record<string, unknown>;
   const newD = (log.new_data ?? {}) as Record<string, unknown>;
   if (log.action === "INSERT") {
@@ -1054,7 +1149,7 @@ function diffSummary(log: TyreAuditLog): string {
     for (const [k, v] of Object.entries(newD)) {
       if (["id", "created_at", "updated_at"].includes(k)) continue;
       if (v !== null && v !== undefined && v !== "")
-        pick.push(`${k}: ${String(v)}`);
+        pick.push(`${label(k)}: ${String(v)}`);
       if (pick.length >= 4) break;
     }
     return pick.length ? pick.join(" · ") : "New record created";
@@ -1070,7 +1165,7 @@ function diffSummary(log: TyreAuditLog): string {
     if (["id", "created_at", "updated_at"].includes(k)) continue;
     if (JSON.stringify(oldD[k]) !== JSON.stringify(newD[k])) {
       changes.push(
-        `${k}: ${String(oldD[k] ?? "—")} → ${String(newD[k] ?? "—")}`,
+        `${label(k)}: ${String(oldD[k] ?? "—")} → ${String(newD[k] ?? "—")}`,
       );
     }
   }
@@ -1080,10 +1175,26 @@ function diffSummary(log: TyreAuditLog): string {
 }
 
 function AuditLogSection() {
-  const { data, isLoading } = useTyreAuditLog();
+  const { data, isLoading, isError, refetch } = useTyreAuditLog();
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => { let active = true; void supabase.auth.getUser().then(({ data: { user } }) => { if (active) setCurrentUserId(user?.id ?? null); }); return () => { active = false; }; }, []);
+  const actorIds = useMemo(() => [...new Set((data ?? []).flatMap((log) => log.changed_by ? [log.changed_by] : []))], [data]);
+  const { data: actors = [] } = useQuery({
+    queryKey: ["audit-actor-profiles", actorIds],
+    enabled: actorIds.length > 0,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase.from("profiles").select("id, display_name").in("id", actorIds);
+      if (error) throw error;
+      return rows ?? [];
+    },
+  });
+  const actorsById = useMemo(() => new Map(actors.map((actor) => [actor.id, actor.display_name])), [actors]);
 
-  const rows = (data ?? []).filter(
+  const rows = filterRows(data ?? [], query, fromDate, toDate).filter(
     (l) => filter === "all" || l.table_name === filter || l.action === filter,
   );
 
@@ -1098,14 +1209,19 @@ function AuditLogSection() {
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("tyre-audit-log.csv", rows)}>Export CSV</Button></div>
       <Card>
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+          <Input className="h-9 min-w-[180px] flex-1" aria-label="Search audit history" placeholder="Search changes or account ID…" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Input className="h-9 w-36" type="date" aria-label="Audit history from date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+          <Input className="h-9 w-36" type="date" aria-label="Audit history to date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
             <h3 className="text-base font-semibold text-foreground">
               Tyre Maintenance Audit Trail
             </h3>
             <p className="text-xs text-muted-foreground">
-              Every insert, update, and delete across inventory, fitment, teeth,
-              services, and tyre positions.
+              Every insert, update, and delete across inventory, fitment, tyre
+              maintenance, teeth, services, and tyre positions.
             </p>
           </div>
           <div className="w-56">
@@ -1127,7 +1243,7 @@ function AuditLogSection() {
             </Select>
           </div>
         </div>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>When</TableHead>
@@ -1144,7 +1260,7 @@ function AuditLogSection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : rows.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={5} onRetry={() => { void refetch(); }} /> : rows.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -1169,19 +1285,19 @@ function AuditLogSection() {
                     {AUDIT_TABLE_LABELS[l.table_name] ?? l.table_name}
                   </TableCell>
                   <TableCell className="text-xs">
-                    {l.changed_by ? l.changed_by.slice(0, 8) : "—"}
+                    {l.changed_by ? <span title={l.changed_by}>{l.changed_by === currentUserId ? "You" : actorsById.get(l.changed_by) || `User · ${l.changed_by.slice(0, 8)}`}</span> : "System"}
                   </TableCell>
-                  <TableCell
-                    className="max-w-[420px] truncate text-xs"
-                    title={diffSummary(l)}
-                  >
-                    {diffSummary(l)}
+                  <TableCell className="max-w-[420px] text-xs">
+                    <details>
+                      <summary className="cursor-pointer truncate" title={diffSummary(l)}>{diffSummary(l)}</summary>
+                      <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-[11px]">{JSON.stringify({ before: l.old_data, after: l.new_data }, null, 2)}</pre>
+                    </details>
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
     </div>
   );
@@ -1190,7 +1306,7 @@ function AuditLogSection() {
 /* ================= Services ================= */
 function ServicesSection() {
   const { data: vehicles = [] } = useVehicles();
-  const { data, isLoading } = useServiceEntries();
+  const { data, isLoading, isError, refetch } = useServiceEntries();
   const add = useAddServiceEntry();
   const remove = useDeleteServiceEntry();
   const update = useUpdateServiceEntry();
@@ -1215,8 +1331,8 @@ function ServicesSection() {
   const visibleData = useMemo(() => filteredData.slice((page - 1) * 25, page * 25), [filteredData, page]);
 
   async function submit() {
-    if (!form.vehicle_id || !form.particular.trim() || Number(form.to_km) < Number(form.from_km)) {
-      toast.error("Select a vehicle, enter the service, and ensure To KM is not below From KM");
+    if (!form.vehicle_id || !form.particular.trim() || !form.from_km.trim() || !form.to_km.trim() || Number(form.to_km) < Number(form.from_km)) {
+      toast.error("Select a vehicle and service, and enter a valid KM range");
       return;
     }
     try {
@@ -1250,7 +1366,7 @@ function ServicesSection() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end"><Button variant="outline" onClick={() => exportCsv("services.csv", data ?? [])}>Export CSV</Button></div>
-      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
+      <TableToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} total={filteredData.length} shown={visibleData.length} loading={isLoading} page={page} pages={pages} onPageChange={setPage} fromDate={fromDate} toDate={toDate} onFromDateChange={(value) => { setFromDate(value); setPage(1); }} onToDateChange={(value) => { setToDate(value); setPage(1); }} sort={sort} onSortChange={(value) => { setSort(value); setPage(1); }} />
       <Card>
         <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Date">
@@ -1262,7 +1378,7 @@ function ServicesSection() {
               }
             />
           </Field>
-          <Field label="Vehicle no">
+          <Field label="Vehicle no" required>
             <VehicleSelect
               value={form.vehicle_id}
               onChange={(v) => setForm((f) => ({ ...f, vehicle_id: v }))}
@@ -1276,7 +1392,7 @@ function ServicesSection() {
               }
             />
           </Field>
-          <Field label="From KM">
+          <Field label="From KM" required>
             <Input
               type="number"
               min={0}
@@ -1286,7 +1402,7 @@ function ServicesSection() {
               }
             />
           </Field>
-          <Field label="To KM">
+          <Field label="To KM" required>
             <Input
               type="number"
               min={0}
@@ -1296,7 +1412,7 @@ function ServicesSection() {
               }
             />
           </Field>
-          <Field label="Particular">
+          <Field label="Particular" required>
             <Input
               value={form.particular}
               onChange={(e) =>
@@ -1331,7 +1447,7 @@ function ServicesSection() {
       </Card>
 
       <Card>
-        <Table>
+        <div className="overflow-x-auto"><Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -1352,7 +1468,7 @@ function ServicesSection() {
                   <Skeleton className="h-8 w-full" />
                 </TableCell>
               </TableRow>
-            ) : visibleData.length === 0 ? (
+            ) : isError ? <QueryErrorRow colSpan={9} onRetry={() => { void refetch(); }} /> : visibleData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={9}
@@ -1377,19 +1493,165 @@ function ServicesSection() {
               ))
             )}
           </TableBody>
-        </Table>
+        </Table></div>
       </Card>
       {editing && <RecordEditDialog title="service entry" row={editing} fields={[{ key: "entry_date", label: "Date", type: "date" }, { key: "driver_name", label: "Driver" }, { key: "from_km", label: "From KM", type: "number" }, { key: "to_km", label: "To KM", type: "number" }, { key: "particular", label: "Particular" }, { key: "place", label: "Place" }, { key: "amount", label: "Amount", type: "number" }]} pending={update.isPending} onClose={() => setEditing(null)} onSave={async (patch) => { await update.mutateAsync({ id: editing.id, ...patch } as never); setEditing(null); toast.success("Service updated"); }} />}
     </div>
   );
 }
 
-/* ================= Truck Tyre View (TMS Prime-style interactive layout) ================= */
-function TyreViewSection() {
-  const { data: vehicles = [], isLoading: loadingVehicles } = useVehicles();
-  const { data: allTyres = [] } = useAllTyres();
+/* ================= Tyre Maintenance ================= */
+const MAINTENANCE_TYPES = ["Inspection", "Puncture repair", "Rotation", "Alignment", "Retread", "Replacement", "Other"] as const;
+
+function TyreMaintenanceSection() {
+  const { data: vehicles = [] } = useVehicles();
+  const { data: tyres = [] } = useAllTyres();
+  const { data: records = [], isLoading, isError, refetch } = useTyreMaintenance();
+  const add = useAddTyreMaintenance();
   const [vehicleId, setVehicleId] = useState("");
+  const [document, setDocument] = useState<File | null>(null);
+  const [form, setForm] = useState({
+    tyre_id: "",
+    entry_date: new Date().toISOString().slice(0, 10),
+    maintenance_type: "Inspection",
+    km_reading: "",
+    driver_name: "",
+    expense_account: "",
+    payment_mode: "Cash",
+    amount: "",
+    next_alert_date: "",
+    next_alert_km: "",
+    remark: "",
+    condition_after: "",
+    tread_depth_mm: "",
+    damage_notes: "",
+  });
+
+  const vehicleTyres = tyres.filter((tyre) => tyre.vehicle_id === vehicleId);
+  const tyresById = useMemo(() => new Map(tyres.map((tyre) => [tyre.id, tyre])), [tyres]);
+  const vehiclesById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.id, vehicle])), [vehicles]);
+  const today = new Date().toISOString().slice(0, 10);
+  const latestByTyre = useMemo(() => {
+    const latest = new Map<string, TyreMaintenance>();
+    for (const record of records) if (!latest.has(record.tyre_id)) latest.set(record.tyre_id, record);
+    return [...latest.values()];
+  }, [records]);
+  const thresholdDate = new Date(`${today}T00:00:00`);
+  thresholdDate.setDate(thresholdDate.getDate() + 30);
+  const dueNow = latestByTyre.filter((record) => {
+    const vehicle = vehiclesById.get(tyresById.get(record.tyre_id)?.vehicle_id ?? "");
+    return Boolean((record.next_alert_date && record.next_alert_date <= today) || (record.next_alert_km != null && Number(vehicle?.odometer ?? 0) >= Number(record.next_alert_km)));
+  });
+  const dueSoon = latestByTyre.filter((record) => {
+    if (dueNow.includes(record)) return false;
+    const vehicle = vehiclesById.get(tyresById.get(record.tyre_id)?.vehicle_id ?? "");
+    const dateSoon = record.next_alert_date && record.next_alert_date <= thresholdDate.toISOString().slice(0, 10);
+    const kmRemaining = record.next_alert_km == null ? Number.POSITIVE_INFINITY : Number(record.next_alert_km) - Number(vehicle?.odometer ?? 0);
+    return Boolean(dateSoon || (kmRemaining > 0 && kmRemaining <= 1000));
+  });
+  const selectedVehicle = vehiclesById.get(vehicleId);
+
+  async function submit() {
+    if (!form.tyre_id || !form.km_reading) {
+      toast.error("Select a vehicle, tyre position, and kilometre reading");
+      return;
+    }
+    const kmReading = Number(form.km_reading);
+    if (!Number.isFinite(kmReading) || kmReading < 0) {
+      toast.error("Enter a valid non-negative odometer reading");
+      return;
+    }
+    if (selectedVehicle && kmReading < Number(selectedVehicle.odometer)) {
+      toast.error(`Odometer cannot go backwards from ${Number(selectedVehicle.odometer).toLocaleString("en-IN")} km. Confirm or correct the vehicle reading first.`);
+      return;
+    }
+    try {
+      let documentPath: string | null = null;
+      if (document) {
+        const safeName = document.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `maintenance/${form.tyre_id}/${Date.now()}-${safeName}`;
+        const upload = await supabase.storage.from("tyre-documents").upload(path, document, { upsert: true });
+        if (upload.error) throw upload.error;
+        documentPath = path;
+      }
+      await add.mutateAsync({
+        tyre_id: form.tyre_id,
+        entry_date: form.entry_date,
+        maintenance_type: form.maintenance_type,
+        km_reading: kmReading,
+        driver_name: form.driver_name.trim() || null,
+        expense_account: form.expense_account.trim() || null,
+        payment_mode: form.payment_mode,
+        amount: Number(form.amount) || 0,
+        next_alert_date: form.next_alert_date || null,
+        next_alert_km: form.next_alert_km ? Number(form.next_alert_km) : null,
+        condition_after: form.condition_after || null,
+        tread_depth_mm: form.tread_depth_mm ? Number(form.tread_depth_mm) : null,
+        damage_notes: form.damage_notes.trim() || null,
+        remark: form.remark.trim() || null,
+        document_path: documentPath,
+      });
+      toast.success("Tyre maintenance recorded");
+      setForm((current) => ({ ...current, tyre_id: "", km_reading: "", driver_name: "", expense_account: "", amount: "", next_alert_date: "", next_alert_km: "", remark: "", condition_after: "", tread_depth_mm: "", damage_notes: "" }));
+      setDocument(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save tyre maintenance");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-card px-5 py-4 shadow-panel">
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Tyre Maintenance</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Log inspections, repairs, rotations, costs, documents, and next-service alerts for every tyre position.</p>
+        </div>
+        <Button variant="outline" onClick={() => exportCsv("tyre-maintenance.csv", records)}>Export CSV</Button>
+      </div>
+      {dueNow.length > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+          <div><strong>{dueNow.length} tyre maintenance item{dueNow.length === 1 ? "" : "s"} overdue</strong><p className="mt-1 text-muted-foreground">A date or vehicle odometer threshold has been reached. Review before the next trip.</p></div>
+        </div>
+      )}
+      {dueSoon.length > 0 && <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100"><strong>{dueSoon.length} tyre service{dueSoon.length === 1 ? "" : "s"} due soon</strong><p className="mt-1 opacity-80">Within the next 30 days or 1,000 vehicle kilometres.</p></div>}
+      <Card>
+        <div className="space-y-4 p-4">
+          <section className="space-y-3 rounded-lg border border-border p-4"><div><h2 className="text-sm font-semibold">Vehicle and tyre</h2><p className="mt-1 text-xs text-muted-foreground">The odometer updates the vehicle record when you save.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Field label="Vehicle" required><VehicleSelect value={vehicleId} required onChange={(value) => { setVehicleId(value); const nextVehicle = vehiclesById.get(value); setForm((current) => ({ ...current, tyre_id: "", km_reading: nextVehicle ? String(nextVehicle.odometer) : "" })); }} /></Field><Field label="Tyre position" required><Select value={form.tyre_id || "none"} onValueChange={(value) => setForm((current) => ({ ...current, tyre_id: value === "none" ? "" : value }))}><SelectTrigger><SelectValue placeholder={vehicleId ? "Select tyre position" : "Select a vehicle first"} /></SelectTrigger><SelectContent><SelectItem value="none">— None —</SelectItem>{vehicleTyres.map((tyre) => <SelectItem key={tyre.id} value={tyre.id}>{tyre.position_code} · {tyre.brand || "Unbranded"} · {tyre.serial_no || "No serial"}</SelectItem>)}</SelectContent></Select></Field><Field label="Vehicle odometer (km)" required><Input type="number" min={0} value={form.km_reading} onChange={(event) => setForm((current) => ({ ...current, km_reading: event.target.value }))} placeholder={selectedVehicle ? String(selectedVehicle.odometer) : "Select a vehicle"} />{selectedVehicle && Date.now() - new Date(selectedVehicle.odometer_updated_at).getTime() > 30 * 86400000 && <p className="text-xs text-warning">Last updated over 30 days ago—confirm this reading.</p>}</Field></div></section>
+          <section className="space-y-3 rounded-lg border border-border p-4"><div><h2 className="text-sm font-semibold">Inspection or work</h2><p className="mt-1 text-xs text-muted-foreground">Condition and tread depth are optional, but help catch wear before a breakdown.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Field label="Maintenance type"><Select value={form.maintenance_type} onValueChange={(value) => setForm((current) => ({ ...current, maintenance_type: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{MAINTENANCE_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></Field><Field label="Date"><Input type="date" value={form.entry_date} onChange={(event) => setForm((current) => ({ ...current, entry_date: event.target.value }))} /></Field><Field label="Driver"><Input value={form.driver_name} onChange={(event) => setForm((current) => ({ ...current, driver_name: event.target.value }))} placeholder="Optional" /></Field><Field label="Condition after work"><Select value={form.condition_after || "none"} onValueChange={(value) => setForm((current) => ({ ...current, condition_after: value === "none" ? "" : value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Not assessed</SelectItem><SelectItem value="good">Good</SelectItem><SelectItem value="monitor">Monitor</SelectItem><SelectItem value="replace">Replace</SelectItem></SelectContent></Select></Field><Field label="Tread depth (mm)"><Input type="number" min={0} step="0.1" value={form.tread_depth_mm} onChange={(event) => setForm((current) => ({ ...current, tread_depth_mm: event.target.value }))} placeholder="Optional measurement" /></Field><Field label="Damage / inspection notes"><Input value={form.damage_notes} onChange={(event) => setForm((current) => ({ ...current, damage_notes: event.target.value }))} placeholder="Cut, puncture, uneven wear…" /></Field><div className="sm:col-span-2 lg:col-span-3"><Field label="Work notes"><Input value={form.remark} onChange={(event) => setForm((current) => ({ ...current, remark: event.target.value }))} placeholder="Work completed or observations" /></Field></div></div></section>
+          <section className="space-y-3 rounded-lg border border-border p-4"><div><h2 className="text-sm font-semibold">Cost and next service</h2><p className="mt-1 text-xs text-muted-foreground">In-app due-soon reminders appear within 30 days or 1,000 km of a threshold.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Field label="Expense account"><Input value={form.expense_account} onChange={(event) => setForm((current) => ({ ...current, expense_account: event.target.value }))} placeholder="Workshop / vendor" /></Field><Field label="Payment mode"><Select value={form.payment_mode} onValueChange={(value) => setForm((current) => ({ ...current, payment_mode: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Cash">Cash</SelectItem><SelectItem value="Credit">Credit</SelectItem></SelectContent></Select></Field><Field label="Amount"><Input type="number" min={0} value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0" /></Field><Field label="Next alert date"><Input type="date" value={form.next_alert_date} onChange={(event) => setForm((current) => ({ ...current, next_alert_date: event.target.value }))} /></Field><Field label="Next alert odometer (km)"><Input type="number" min={0} value={form.next_alert_km} onChange={(event) => setForm((current) => ({ ...current, next_alert_km: event.target.value }))} /></Field><Field label="Document"><Input type="file" className="cursor-pointer text-xs" onChange={(event) => setDocument(event.target.files?.[0] ?? null)} /></Field></div></section>
+        </div>
+        <div className="flex justify-end border-t border-border px-4 py-3"><Button onClick={submit} disabled={add.isPending}><ClipboardCheck className="mr-2 h-4 w-4" />{add.isPending ? "Saving…" : "Save maintenance"}</Button></div>
+      </Card>
+      <Card>
+        <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Vehicle / tyre</TableHead><TableHead>Work</TableHead><TableHead>KM</TableHead><TableHead>Condition</TableHead><TableHead>Tread</TableHead><TableHead>Amount</TableHead><TableHead>Next alert</TableHead><TableHead>Document</TableHead></TableRow></TableHeader><TableBody>
+          {isLoading ? <TableRow><TableCell colSpan={9}><Skeleton className="h-8 w-full" /></TableCell></TableRow> : isError ? <QueryErrorRow colSpan={9} onRetry={() => { void refetch(); }} /> : records.length === 0 ? <TableRow><TableCell colSpan={9} className="py-16 text-center text-muted-foreground">No tyre-maintenance records yet. Record an inspection or repair above to start this history.</TableCell></TableRow> : records.map((record: TyreMaintenance) => {
+            const tyre = tyresById.get(record.tyre_id); const vehicle = tyre ? vehiclesById.get(tyre.vehicle_id) : undefined; const isDue = (record.next_alert_date && record.next_alert_date <= today) || (record.next_alert_km != null && Number(vehicle?.odometer ?? 0) >= Number(record.next_alert_km));
+            return <TableRow key={record.id}><TableCell>{displayDate(record.entry_date)}</TableCell><TableCell><div className="font-medium">{vehicle?.vehicle_number || "—"} · {tyre?.position_code || "—"}</div><div className="text-xs text-muted-foreground">{tyre?.serial_no || tyre?.brand || "Tyre"}</div></TableCell><TableCell><div>{record.maintenance_type}</div>{record.remark && <div className="max-w-48 truncate text-xs text-muted-foreground" title={record.remark}>{record.remark}</div>}</TableCell><TableCell>{Number(record.km_reading).toLocaleString("en-IN")}</TableCell><TableCell className="capitalize">{record.condition_after || "—"}</TableCell><TableCell>{record.tread_depth_mm == null ? "—" : `${Number(record.tread_depth_mm)} mm`}</TableCell><TableCell>{inr(Number(record.amount))}</TableCell><TableCell className={isDue ? "font-semibold text-warning" : ""}>{record.next_alert_date ? displayDate(record.next_alert_date) : "—"}{record.next_alert_km != null && <div className="text-xs">{Number(record.next_alert_km).toLocaleString("en-IN")} km</div>}</TableCell><TableCell>{record.document_path ? <SignedDocumentLink path={record.document_path} /> : "—"}</TableCell></TableRow>;
+          })}
+        </TableBody></Table></div>
+      </Card>
+    </div>
+  );
+}
+
+/* ================= Truck Tyre View (TMS Prime-style interactive layout) ================= */
+function TyreViewSection({ vehicleId, onVehicleChange, focusTyreId, onFocusHandled }: { vehicleId: string; onVehicleChange: (id: string) => void; focusTyreId: string; onFocusHandled: () => void }) {
+  const { data: vehicles = [], isLoading: loadingVehicles, isError: vehiclesError, refetch: refetchVehicles } = useVehicles();
+  const vehiclesById = useMemo(() => new Map(vehicles.map((item) => [item.id, item])), [vehicles]);
+  const { data: allTyres = [], isError: allTyresError, refetch: refetchAllTyres } = useAllTyres();
+  const { data: maintenance = [], isError: maintenanceError, refetch: refetchMaintenance } = useTyreMaintenance();
+  const [viewMode, setViewMode] = useState<"visual" | "list">("visual");
+  const [visualOrientation, setVisualOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [selected, setSelected] = useState<Tyre | null>(null);
+  useEffect(() => {
+    if (!focusTyreId || allTyresError) return;
+    const targetTyre = allTyres.find((tyre) => tyre.id === focusTyreId);
+    if (!targetTyre) return;
+    if (targetTyre.vehicle_id !== vehicleId) onVehicleChange(targetTyre.vehicle_id);
+    setSelected(targetTyre);
+    onFocusHandled();
+  }, [focusTyreId, allTyres, allTyresError, vehicleId, onVehicleChange, onFocusHandled]);
   const [editingDetails, setEditingDetails] = useState(false);
   const [replacementOpen, setReplacementOpen] = useState(false);
   const [replacement, setReplacement] = useState({
@@ -1415,13 +1677,23 @@ function TyreViewSection() {
     cost: "",
     remark: "",
   });
+  const tyreDialogRef = useAccessibleDialog(Boolean(selected) && !replacementOpen, () => { setSelected(null); setEditingDetails(false); });
+  const replacementDialogRef = useAccessibleDialog(replacementOpen, () => setReplacementOpen(false));
   const vehicle = vehicles.find((v) => v.id === (vehicleId || vehicles[0]?.id));
+  const verticalScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (visualOrientation === "vertical") verticalScrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [visualOrientation, vehicle?.id]);
   const { data: tyres = [], isLoading: loadingTyres } = useTyres(vehicle?.id);
   const { data: tyreEvents = [] } = useTyreEvents(
     selected && !selected.id.startsWith("missing-") && !selected.id.startsWith("preview-")
       ? selected.id
       : undefined,
   );
+  const selectedHistory = selected ? [
+    ...tyreEvents.map((event) => ({ id: event.id, type: event.event_type, date: event.event_date, km: event.km_reading, note: event.note, documentPath: event.note?.match(/Document:\s*([^·]+)/i)?.[1]?.trim() ?? null })),
+    ...maintenance.filter((record) => record.tyre_id === selected.id).map((record) => ({ id: record.id, type: record.maintenance_type, date: record.entry_date, km: record.km_reading, note: record.damage_notes || record.remark, documentPath: record.document_path })),
+  ].sort((a, b) => b.date.localeCompare(a.date)) : [];
   const provision = useProvisionTyres();
   const setExisting = useSetExistingTyre();
   const save = useSaveTyre();
@@ -1447,12 +1719,32 @@ function TyreViewSection() {
       .length;
   }, [vehicle, showAddVehicle, tyres]);
 
-  const fleetStats = useMemo(() => {
-    const counts = { Good: 0, Moderate: 0, Replace: 0 };
-    for (const tyre of allTyres) counts[tyreHealth(Number(tyre.current_km))] += 1;
-    const expected = vehicles.reduce((sum, v) => sum + tyrePositions(v.wheels).length, 0);
-    return { ...counts, total: allTyres.length, expected, missing: Math.max(0, expected - allTyres.length) };
-  }, [allTyres, vehicles]);
+  const maintenanceByTyre = useMemo(() => {
+    const latest = new Map<string, TyreMaintenance>();
+    for (const entry of maintenance) {
+      const current = latest.get(entry.tyre_id);
+      if (!current || entry.entry_date > current.entry_date) latest.set(entry.tyre_id, entry);
+    }
+    return latest;
+  }, [maintenance]);
+
+  const isMaintenanceDue = (tyre: Tyre) => {
+    const record = maintenanceByTyre.get(tyre.id);
+    if (!record) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    return Boolean(
+      (record.next_alert_date && record.next_alert_date <= today) ||
+      (record.next_alert_km != null && Number(vehiclesById.get(tyre.vehicle_id)?.odometer ?? 0) >= Number(record.next_alert_km)),
+    );
+  };
+
+  const tyreConditionLabel = (tyre: Tyre) => {
+    const condition = maintenanceByTyre.get(tyre.id)?.condition_after ?? tyre.condition;
+    if (condition === "good") return "Good";
+    if (condition === "monitor") return "Moderate";
+    if (condition === "replace") return "Replace";
+    return tyreHealth(Number(tyre.current_km));
+  };
 
   // While adding a vehicle, show the selected wheel layout immediately as a preview.
   const displayGroups = useMemo(() => {
@@ -1504,10 +1796,15 @@ function TyreViewSection() {
     return [...groups.entries()];
   }, [showAddVehicle, newVehicle.wheels, axleGroups]);
 
-  const plan = vehicle ? axlePlan(vehicle.wheels) : { steer: 0, rear: 0 };
-  // TMS Prime keeps the steering axle on the left and all remaining axles on the right.
+  // TMS Prime places the first/front axle before the cab; the remaining axles sit behind it.
   const leftAxles = displayGroups.slice(0, 1);
   const rightAxles = displayGroups.slice(1);
+  const rightAxleWidths = rightAxles.map(([, list]) => {
+    const rightCount = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, ""))).length;
+    const leftCount = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, ""))).length;
+    return Math.max(170, Math.max(rightCount, leftCount) * 114 + 16);
+  });
+  const rightAxlesWidth = rightAxleWidths.reduce((total, width) => total + width, 0) + Math.max(0, rightAxleWidths.length - 1) * 16;
 
   function selectTyre(tyre: Tyre) {
     setSelected(tyre);
@@ -1621,7 +1918,7 @@ function TyreViewSection() {
         wheels: Number(newVehicle.wheels),
         odometer: Number(newVehicle.odometer) || 0,
       });
-      setVehicleId(created.id);
+      onVehicleChange(created.id);
       setShowAddVehicle(false);
       setNewVehicle({ vehicle_number: "", wheels: "6", odometer: "0" });
       toast.success("Vehicle added");
@@ -1630,26 +1927,36 @@ function TyreViewSection() {
     }
   }
 
-  const tyreButton = (t: Tyre) => {
+  const tyreButton = (t: Tyre, compact = false) => {
     const hasData =
       !t.id.startsWith("missing-") && !t.id.startsWith("preview-");
-    const health = tyreHealth(Number(t.current_km));
+    const health = tyreConditionLabel(t);
     const cls = healthClasses[health];
+    const costPerKmValue = costPerKm(Number(t.cost), Number(t.current_km));
+    const tyreStatus = isMaintenanceDue(t) ? "Maintenance Due" : health === "Replace" ? "Replace Soon" : health;
     return (
       <button
         key={t.id}
         type="button"
-        title={`${t.position_code} · ${hasData ? `${shortKm(Number(t.current_km))} km · ${inr(costPerKm(Number(t.cost), Number(t.current_km)))}` : "No tyre data"}`}
         disabled={t.id.startsWith("preview-")}
         onClick={() => selectTyre(t)}
-        aria-label={`Tyre ${t.position_code}`}
-        className={`relative h-[110px] w-[110px] shrink-0 rounded-full transition hover:scale-105 ${hasData ? `${cls.fill} ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20 bg-muted/10"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
+        aria-label={hasData ? `Tyre ${t.position_code}, ${t.tyre_type}, ${Number(t.current_km).toLocaleString("en-IN")} kilometres used, ${tyreStatus}, cost ${inr(Number(t.cost))}, ${inr(costPerKmValue)} per kilometre` : `Tyre ${t.position_code}, no tyre data recorded`}
+        className={`group relative ${compact ? "h-[82px] w-[82px]" : "h-[110px] w-[110px]"} shrink-0 rounded-full transition hover:z-[60] hover:scale-105 focus-visible:z-[60] ${hasData ? `${cls.fill} ring-2 ${cls.ring}` : "border-2 border-dashed border-muted-foreground/20 bg-muted/10"} ${selected?.id === t.id ? "ring-4 ring-primary" : ""} ${t.id.startsWith("preview-") ? "cursor-default" : ""}`}
       >
-        <span className="absolute inset-x-0 top-2 text-[10px] font-semibold">{t.position_code}</span>
-        <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">{hasData ? shortKm(Number(t.current_km)) : "N/A"}</span>
-        {hasData && <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">{inr(costPerKm(Number(t.cost), Number(t.current_km)))}</span>}
-        {hasData && <span className={`absolute bottom-7 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full ${cls.dot}`} />}
-        {hasData && <span className="absolute inset-x-0 bottom-2 text-[9px] uppercase text-muted-foreground">{t.tyre_type}</span>}
+        <span className={`absolute inset-x-0 ${compact ? "top-1 text-[8px]" : "top-2 text-[10px]"} font-semibold`}>{t.position_code}</span>
+        <span className={`absolute left-1 top-1/2 -translate-y-1/2 -rotate-45 whitespace-nowrap ${compact ? "text-[7px]" : "text-[9px]"} text-muted-foreground`}>{hasData ? shortKm(Number(t.current_km)) : "N/A"}</span>
+        {hasData && <span className={`absolute right-1 top-1/2 -translate-y-1/2 rotate-45 whitespace-nowrap ${compact ? "text-[6px]" : "text-[8px]"} text-muted-foreground`}>{inr(costPerKmValue)}/km</span>}
+        {hasData && <span className={`absolute left-1/2 top-1/2 ${compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5"} -translate-x-1/2 -translate-y-1/2 rounded-full ${cls.dot}`} />}
+        {hasData && isMaintenanceDue(t) && <span title="Maintenance due" className={`absolute ${compact ? "right-1 top-1 h-2 w-2" : "right-2 top-2 h-2.5 w-2.5"} rounded-full bg-warning ring-2 ring-card`} />}
+        {hasData && <span className={`absolute inset-x-0 ${compact ? "bottom-1 text-[7px]" : "bottom-2 text-[9px]"} uppercase text-muted-foreground`}>{t.tyre_type}</span>}
+        {hasData && <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-[70] mb-2 hidden w-[220px] -translate-x-1/2 rounded-lg bg-primary px-3 py-2 text-left text-xs leading-5 text-primary-foreground shadow-xl group-hover:block group-focus-visible:block">
+          <span className="block"><strong>Position:</strong> {t.position_code}</span>
+          <span className="block"><strong>Type:</strong> {t.tyre_type}</span>
+          <span className="block"><strong>KM Usage:</strong> {Number(t.current_km).toLocaleString("en-IN")} km</span>
+          <span className="block"><strong>Status:</strong> {tyreStatus}</span>
+          <span className="block"><strong>Tyre Cost:</strong> {inr(Number(t.cost))}</span>
+          <span className="block"><strong>Cost per KM:</strong> {inr(costPerKmValue)}/km</span>
+        </span>}
       </button>
     );
   };
@@ -1665,21 +1972,34 @@ function TyreViewSection() {
           list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, ""))),
         ].map((row, i) => (
           <div key={i} className="flex justify-center gap-2">
-            {row.map(tyreButton)}
+            {row.map((tyre) => tyreButton(tyre))}
           </div>
         ))}
       </div>
     </div>
   );
 
-  const topDownAxleBlock = (label: string, list: Tyre[]) => {
-    const left = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")));
-    const right = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, "")));
+  const topDownAxleBlock = (label: string, list: Tyre[], width = 170) => {
+    const topSide = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, "")));
+    const bottomSide = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")));
     return (
-      <div key={label} className="relative flex min-w-[120px] flex-col items-center gap-2">
-        <div className="flex min-h-[110px] items-end gap-1">{left.map(tyreButton)}</div>
-        <div className="relative z-10 flex h-16 w-full items-center justify-center"><div className="absolute inset-x-0 h-2 rounded-full bg-zinc-400/80 shadow-inner" /><span className="relative rounded-full border border-border bg-card px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label.replace("AXLE ", "A")}</span></div>
-        <div className="flex min-h-[110px] items-start gap-1">{right.map(tyreButton)}</div>
+      <div key={label} className="relative flex h-[270px] min-w-[120px] flex-none flex-col items-center justify-center" style={{ width: `${width}px` }}>
+        <p className="absolute -top-5 left-0 right-0 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <div className="flex h-[110px] items-end gap-1">{topSide.map((tyre) => tyreButton(tyre))}</div>
+        <div className="h-9 w-full" />
+        <div className="flex h-[110px] items-start gap-1">{bottomSide.map((tyre) => tyreButton(tyre))}</div>
+      </div>
+    );
+  };
+
+  const verticalAxleBlock = (label: string, list: Tyre[]) => {
+    const rightSide = list.filter((t) => /R/.test(t.position_code.replace(/^\d+/, "")));
+    const leftSide = list.filter((t) => /L/.test(t.position_code.replace(/^\d+/, "")));
+    return (
+      <div key={label} className="relative z-10 grid w-[1000px] grid-cols-[minmax(0,1fr)_260px_minmax(0,1fr)] items-center gap-x-8 py-1">
+        <div className="flex items-center justify-end gap-2"><span className="shrink-0 rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">{label}</span>{rightSide.map((t) => tyreButton(t))}</div>
+        <div className="h-[110px] w-[260px]" aria-hidden="true" />
+        <div className="flex justify-start gap-2">{leftSide.map((t) => tyreButton(t))}</div>
       </div>
     );
   };
@@ -1695,33 +2015,25 @@ function TyreViewSection() {
   if (!vehicle)
     return (
       <Card>
-        <div className="p-10 text-center text-muted-foreground">
-          No vehicles found.
+        <div className="space-y-4 p-6">
+          {vehiclesError ? <QueryErrorBanner label="vehicles" onRetry={() => { void refetchVehicles(); }} /> : <><div><h2 className="text-lg font-semibold">Add your first vehicle</h2><p className="mt-1 text-sm text-muted-foreground">Create a vehicle to start recording its tyre positions and maintenance history.</p></div><div className="grid gap-3 sm:grid-cols-3"><Field label="Vehicle number"><Input value={newVehicle.vehicle_number} placeholder="MH12XX0000" onChange={(event) => setNewVehicle((v) => ({ ...v, vehicle_number: event.target.value }))} /></Field><Field label="Wheel configuration"><Select value={newVehicle.wheels} onValueChange={(wheels) => setNewVehicle((v) => ({ ...v, wheels }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{WHEEL_CONFIGS.map((wheels) => <SelectItem key={wheels} value={String(wheels)}>{wheels} wheeler</SelectItem>)}</SelectContent></Select></Field><Field label="Current odometer"><Input type="number" min={0} value={newVehicle.odometer} onChange={(event) => setNewVehicle((v) => ({ ...v, odometer: event.target.value }))} /></Field></div><div className="flex justify-end"><Button onClick={addNewVehicle} disabled={addVehicle.isPending || !newVehicle.vehicle_number.trim()}>{addVehicle.isPending ? "Creating…" : "Create vehicle"}</Button></div></>}
         </div>
       </Card>
     );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/70 bg-card px-5 py-4 shadow-panel">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Truck className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="inline-block border-b-4 border-blue-400 pb-0.5 text-[22px] font-semibold tracking-[-0.02em]">
-              Truck Tyre View
-            </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Inspect every wheel position, usage, and replacement history.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-5">
+      {allTyresError && <QueryErrorBanner label="tyre position records" onRetry={() => { void refetchAllTyres(); }} />}
+      {maintenanceError && <QueryErrorBanner label="maintenance alerts" onRetry={() => { void refetchMaintenance(); }} />}
+      {loadingTyres && <div role="status" className="rounded-md border border-border bg-card px-4 py-2 text-sm text-muted-foreground">Loading tyre positions…</div>}
+      <div className="grid gap-3 px-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+        <div className="hidden md:block" />
+        <h2 className="justify-self-center border-b-4 border-indigo-400 pb-1 text-center text-[22px] font-semibold tracking-[-0.02em]">Truck Tyre View</h2>
+        <div className="flex flex-wrap justify-center gap-2 md:justify-end">
           <Select
             value={vehicle.id}
             onValueChange={(v) => {
-              setVehicleId(v);
+              onVehicleChange(v);
               setSelected(null);
             }}
           >
@@ -1736,6 +2048,14 @@ function TyreViewSection() {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex rounded-md border border-input bg-background p-0.5">
+            <Button type="button" size="sm" variant={viewMode === "visual" ? "default" : "ghost"} onClick={() => setViewMode("visual")}><LayoutPanelTop className="mr-1.5 h-4 w-4" />Visual</Button>
+            <Button type="button" size="sm" variant={viewMode === "list" ? "default" : "ghost"} onClick={() => setViewMode("list")}><List className="mr-1.5 h-4 w-4" />List View</Button>
+          </div>
+          {viewMode === "visual" && <div className="flex rounded-md border border-input bg-background p-0.5" aria-label="Visual orientation">
+            <Button type="button" size="sm" variant={visualOrientation === "vertical" ? "default" : "ghost"} onClick={() => setVisualOrientation("vertical")}>Vertical</Button>
+            <Button type="button" size="sm" variant={visualOrientation === "horizontal" ? "default" : "ghost"} onClick={() => setVisualOrientation("horizontal")}>Horizontal</Button>
+          </div>}
           <Button
             variant="outline"
             className="bg-background"
@@ -1801,32 +2121,25 @@ function TyreViewSection() {
           </div>
         </Card>
       )}
-      <div className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-border/70 bg-card px-5 py-3 text-xs shadow-panel">
-        <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 font-medium text-success">
+      <div className="flex flex-wrap items-center justify-center gap-8 rounded-xl border border-border/70 bg-card px-5 py-5 text-sm shadow-panel">
+        <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 font-medium text-success dark:bg-emerald-500/15 dark:text-emerald-300">
           <span className="h-3 w-3 rounded-full bg-success" /> Good{" "}
           <span className="font-normal text-muted-foreground">
             (&lt;50k km)
           </span>
         </span>
-        <span className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 font-medium text-warning-foreground">
+        <span className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 font-medium text-warning-foreground dark:bg-amber-400/15 dark:text-amber-200">
           <span className="h-3 w-3 rounded-full bg-warning" /> Moderate{" "}
           <span className="font-normal text-muted-foreground">(50–80k km)</span>
         </span>
-        <span className="flex items-center gap-2 rounded-full bg-destructive/10 px-3 py-1.5 font-medium text-destructive">
+        <span className="flex items-center gap-2 rounded-full bg-destructive/10 px-3 py-1.5 font-medium text-destructive dark:bg-rose-500/15 dark:text-rose-300">
           <span className="h-3 w-3 rounded-full bg-destructive" /> Replace{" "}
           <span className="font-normal text-muted-foreground">
             (&gt;80k km)
           </span>
         </span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCell label="Fleet vehicles" value={String(vehicles.length)} />
-        <StatCell label="Tyres tracked" value={`${fleetStats.total} / ${fleetStats.expected}`} />
-        <StatCell label="Good" value={String(fleetStats.Good)} />
-        <StatCell label="Moderate" value={String(fleetStats.Moderate)} />
-        <StatCell label="Replace soon" value={String(fleetStats.Replace)} />
-      </div>
-      {missingCount > 0 && !showAddVehicle && (
+      {missingCount > 0 && !showAddVehicle && !loadingTyres && !allTyresError && (
         <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
           <span>
             <strong>{missingCount} positions have no tyre record</strong>
@@ -1841,31 +2154,62 @@ function TyreViewSection() {
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border border-border bg-card p-4 shadow-panel">
-        <div className="mx-auto min-w-[980px] max-w-[1500px]">
-          <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground"><span className="text-lg">←</span><span>Front / cab</span><span className="ml-auto">Rear</span><span className="text-lg">→</span></div>
-          <div className="relative flex min-h-[330px] items-stretch rounded-2xl border border-dashed border-border bg-muted/20 p-4 sm:p-6">
-            <div className="z-20 flex w-[150px] shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/10 p-4 text-center shadow-sm"><span className="text-5xl" role="img" aria-label="truck cab">🚛</span><p className="mt-3 text-xs font-bold uppercase tracking-wider text-primary">Cab</p><p className="mt-1 text-[10px] text-muted-foreground">{showAddVehicle ? newVehicle.vehicle_number || "NEW VEHICLE" : vehicle.vehicle_number}</p></div>
-            <div className="relative min-w-0 flex-1 overflow-visible rounded-r-2xl border-y-2 border-r-2 border-zinc-300 bg-gradient-to-r from-zinc-200 via-zinc-300 to-zinc-200 px-5 py-2 dark:border-zinc-600 dark:from-zinc-700 dark:via-zinc-600 dark:to-zinc-700"><div className="pointer-events-none absolute inset-x-8 top-1/2 h-24 -translate-y-1/2 rounded-xl border border-zinc-400/60 bg-zinc-300/50 dark:border-zinc-500/60 dark:bg-zinc-700/50" /><div className="relative z-10 flex h-full items-center justify-around gap-4">{displayGroups.map(([label, list]) => topDownAxleBlock(label, list))}</div></div>
+      {viewMode === "visual" && visualOrientation === "horizontal" && <div role="region" aria-label="Horizontal truck tyre layout" aria-describedby="horizontal-scroll-instructions" tabIndex={0} className="overflow-x-auto overscroll-x-contain scroll-smooth rounded-xl border border-border bg-card p-4 shadow-panel">
+        <p id="horizontal-scroll-instructions" className="mb-2 text-center text-xs font-medium text-muted-foreground">Scroll horizontally to follow the axles from front to rear →</p>
+        <div className="mx-auto w-fit" style={{ width: `${Math.max(700, 132 + 260 + Math.max(170, rightAxlesWidth) + 80)}px` }}>
+          <div className="mb-2 flex items-center gap-2 px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground"><span>Front / cab</span><span className="ml-auto">Rear</span></div>
+          <div className="relative flex min-h-[350px] items-stretch rounded-xl border border-border bg-muted/35 p-3 dark:bg-slate-900/70">
+            <div className="relative z-10 flex w-[132px] shrink-0 items-center justify-center px-1">
+              {leftAxles.map(([label, list]) => topDownAxleBlock(label, list))}
+            </div>
+            <div className="z-20 grid w-[260px] shrink-0 grid-cols-[50px_1fr] items-center gap-5 rounded-lg border border-zinc-300 bg-gradient-to-r from-zinc-200 to-zinc-400 px-5 py-4 shadow-inner dark:border-slate-600 dark:from-slate-700 dark:to-slate-800">
+              <div className="flex h-full items-center justify-center border-r border-zinc-500/40"><span className="[writing-mode:vertical-rl] rotate-180 text-xl font-black tracking-[0.22em] text-zinc-700 dark:text-zinc-100">{showAddVehicle ? newVehicle.vehicle_number || "NEW TRUCK" : vehicle.vehicle_number}</span></div>
+              <div className="space-y-5 text-center"><Truck className="mx-auto h-14 w-14 text-zinc-700 dark:text-zinc-100" aria-label="truck cab" /><div className="grid grid-cols-2 divide-x divide-zinc-500/50 text-xs"><div><div className="text-zinc-600 dark:text-zinc-200">AXLES</div><strong className="text-xl text-zinc-800 dark:text-white">{displayGroups.length}</strong></div><div><div className="text-zinc-600 dark:text-zinc-200">READING</div><strong className="text-xl text-zinc-800 dark:text-white">{showAddVehicle ? Number(newVehicle.odometer).toLocaleString("en-IN") : Number(vehicle.odometer).toLocaleString("en-IN")} km</strong></div></div></div>
+            </div>
+            <div className="relative min-w-0 flex-none overflow-visible bg-muted/35 px-4 py-4 dark:bg-slate-900/70" style={{ width: `${Math.max(170, rightAxlesWidth)}px` }}>
+              <div className="relative z-10 flex h-full items-center justify-start gap-4">{rightAxles.map(([label, list], index) => topDownAxleBlock(label, list, rightAxleWidths[index]))}</div>
+            </div>
           </div>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-muted-foreground"><span>Top = left side</span><span>Bottom = right side</span><span>{showAddVehicle ? "0 km" : `${Number(vehicle.odometer).toLocaleString("en-IN")} km`}</span></div>
+          <div className="mt-3 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground"><span>Top = truck RIGHT side</span><span>Bottom = truck LEFT side</span><span>Select a tyre to view details</span></div>
         </div>
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          {showAddVehicle
-            ? "Preview of the selected wheel configuration — create the vehicle to save it"
-            : "Click on any tyre to view detailed information"}
-        </p>
-      </div>
+      </div>}
+      {viewMode === "visual" && visualOrientation === "vertical" && <div ref={verticalScrollRef} role="region" aria-label="Vertical truck tyre layout" aria-describedby="vertical-scroll-instructions" tabIndex={0} className="max-h-[640px] overflow-auto overscroll-contain scroll-smooth rounded-xl border border-border bg-card p-3 shadow-panel sm:p-4">
+        <p id="vertical-scroll-instructions" className="sticky top-0 z-30 mb-2 bg-card/95 py-2 text-center text-xs font-medium text-muted-foreground backdrop-blur">Front at top · axle order runs toward the rear ↓ · inner/outer tyres sit across the truck</p>
+        <div className="relative mx-auto flex min-w-[1000px] flex-col items-center gap-3 rounded-xl border border-border/70 bg-muted/35 px-6 pb-5 pt-[220px] dark:bg-slate-900/70" style={{ minHeight: `${Math.max(520, 220 + displayGroups.length * 138 + 48)}px` }}>
+          <div className="pointer-events-none absolute inset-y-5 left-1/2 z-0 w-[260px] -translate-x-1/2 rounded-2xl border border-zinc-300 bg-gradient-to-b from-zinc-100 via-zinc-200 to-zinc-300 shadow-inner dark:border-slate-600 dark:from-slate-700 dark:via-slate-800 dark:to-slate-700">
+            <div className="absolute left-1/2 top-5 flex -translate-x-1/2 flex-col items-center gap-1 text-[10px] font-bold tracking-[0.18em] text-zinc-600 dark:text-zinc-200"><span>FRONT</span><Truck className="h-9 w-9 rotate-[-90deg] text-zinc-700 dark:text-zinc-100" role="img" aria-label="truck cab facing front" /></div>
+            <div className="absolute left-1/2 top-[55%] flex h-[142px] w-[390px] -translate-x-1/2 -translate-y-1/2 rotate-90 flex-col justify-center gap-3 bg-transparent px-5 py-3 text-center">
+              <div className="truncate text-lg font-black tracking-wide text-zinc-800 dark:text-zinc-100">{showAddVehicle ? newVehicle.vehicle_number || "NEW TRUCK" : vehicle.vehicle_number}</div>
+              <div className="grid grid-cols-2 divide-x divide-zinc-400/70 text-xs"><div className="px-2"><div className="font-semibold tracking-wide text-zinc-600 dark:text-zinc-300">AXLES</div><strong className="text-lg text-zinc-900 dark:text-white">{displayGroups.length}</strong></div><div className="px-2"><div className="font-semibold tracking-wide text-zinc-600 dark:text-zinc-300">ODOMETER</div><strong className="whitespace-nowrap text-sm text-zinc-900 dark:text-white">{showAddVehicle ? Number(newVehicle.odometer).toLocaleString("en-IN") : Number(vehicle.odometer).toLocaleString("en-IN")} km</strong></div></div>
+            </div>
+          </div>
+          {leftAxles.map(([label, list]) => verticalAxleBlock(label, list))}
+          {rightAxles.map(([label, list]) => verticalAxleBlock(label, list))}
+        </div>
+      </div>}
+      {viewMode === "list" && <Card>
+        <div className="border-b border-border px-4 py-3"><h3 className="font-semibold">Tyre List View</h3><p className="mt-0.5 text-xs text-muted-foreground">Maintenance due is highlighted from the latest saved alert for each position.</p></div>
+        <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Position</TableHead><TableHead>Tyre / serial</TableHead><TableHead>Condition</TableHead><TableHead>Current KM</TableHead><TableHead>Last maintenance</TableHead><TableHead>Next service</TableHead><TableHead></TableHead></TableRow></TableHeader><TableBody>
+          {displayGroups.flatMap(([, group]) => group).map((tyre) => {
+            const maintenanceRecord = maintenanceByTyre.get(tyre.id); const due = isMaintenanceDue(tyre); const missing = tyre.id.startsWith("missing-");
+            return <TableRow key={tyre.id} className={due ? "bg-warning/10" : ""}><TableCell className="font-semibold">{tyre.position_code}</TableCell><TableCell><div>{tyre.brand || "Unbranded"}</div><div className="text-xs text-muted-foreground">{tyre.serial_no || "No serial"}</div></TableCell><TableCell>{missing ? "Not recorded" : tyreConditionLabel(tyre)}</TableCell><TableCell>{missing ? "—" : `${Number(tyre.current_km).toLocaleString("en-IN")} km`}</TableCell><TableCell>{maintenanceRecord ? <><div>{maintenanceRecord.maintenance_type}</div><div className="text-xs text-muted-foreground">{displayDate(maintenanceRecord.entry_date)}</div></> : "No record"}</TableCell><TableCell className={due ? "font-semibold text-warning" : ""}>{maintenanceRecord?.next_alert_date ? displayDate(maintenanceRecord.next_alert_date) : maintenanceRecord?.next_alert_km != null ? `${Number(maintenanceRecord.next_alert_km).toLocaleString("en-IN")} km` : "—"}</TableCell><TableCell><Button variant="outline" size="sm" disabled={tyre.id.startsWith("preview-")} onClick={() => selectTyre(tyre)}>{missing ? "Set tyre" : "Details"}</Button></TableCell></TableRow>;
+          })}
+        </TableBody></Table></div>
+      </Card>}
       {selected && !replacementOpen && (
         <div
+          ref={tyreDialogRef}
           role="dialog"
+          aria-modal="true"
+          aria-labelledby="tyre-details-title"
+          tabIndex={-1}
           aria-label={`Tyre ${selected.position_code} details`}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]"
         >
           <div className="w-full max-w-[520px] rounded-2xl border border-border bg-card p-6 shadow-lift">
             <div className="mb-5 flex items-start justify-between">
               <div>
-                <h3 className="text-2xl font-bold">{selected.position_code}</h3>
+                <h3 id="tyre-details-title" className="text-2xl font-bold"><span className="sr-only">Tyre </span>{selected.position_code}<span className="sr-only"> details</span></h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {selected.axle_label || "Truck tyre"}
                 </p>
@@ -1924,6 +2268,10 @@ function TyreViewSection() {
                     label="Tyre Usage"
                     value={`${Math.max(0, Number(vehicle.odometer) - Number(selected.fitted_km ?? 0)).toLocaleString("en-IN")} km`}
                   />
+                  <StatCell
+                    label="Cost per km"
+                    value={`${inr(costPerKm(Number(selected.cost), Math.max(0, Number(vehicle.odometer) - Number(selected.fitted_km ?? 0))))}/km`}
+                  />
                   <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                       Installation Cost
@@ -1942,22 +2290,16 @@ function TyreViewSection() {
                 <div className="mt-4 rounded-lg border border-border bg-muted/20 p-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Maintenance history</p>
-                    <span className="text-[11px] text-muted-foreground">{tyreEvents.length} event{tyreEvents.length === 1 ? "" : "s"}</span>
+                    <span className="text-[11px] text-muted-foreground">{selectedHistory.length} event{selectedHistory.length === 1 ? "" : "s"}</span>
                   </div>
-                  {tyreEvents.length ? (
+                  {selectedHistory.length ? (
                     <div className="mt-2 space-y-2">
-                      {tyreEvents.slice(0, 5).map((event) => (
+                      {selectedHistory.slice(0, 5).map((event) => (
                         <div key={event.id} className="flex items-center justify-between rounded-md bg-card px-2.5 py-2 text-xs">
-                          <span className="font-medium capitalize">{event.event_type}</span>
+                          <span className="font-medium capitalize">{event.type}{event.note && <span className="ml-2 font-normal normal-case text-muted-foreground">{event.note}</span>}</span>
                           <span className="flex items-center gap-2 text-muted-foreground">
-                            {displayDate(event.event_date)} · {Number(event.km_reading).toLocaleString("en-IN")} km
-                            {(() => {
-                              const match = event.note?.match(/Document:\s*([^·]+)/i);
-                              if (!match) return null;
-                              const path = match[1].trim();
-                              const url = supabase.storage.from("tyre-documents").getPublicUrl(path).data.publicUrl;
-                              return <a className="font-medium text-primary underline" href={url} target="_blank" rel="noreferrer">Open document</a>;
-                            })()}
+                            {displayDate(event.date)} · {Number(event.km).toLocaleString("en-IN")} km
+                            {event.documentPath && <SignedDocumentLink path={event.documentPath}>Open document</SignedDocumentLink>}
                           </span>
                         </div>
                       ))}
@@ -2040,13 +2382,16 @@ function TyreViewSection() {
       )}
       {replacementOpen && selected && (
         <div
+          ref={replacementDialogRef}
           role="dialog"
-          aria-label="Replace Tyre"
+          aria-labelledby="replace-tyre-title"
+          aria-modal="true"
+          tabIndex={-1}
           className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
         >
           <div className="w-full max-w-[560px] rounded-2xl border border-border bg-card p-6 shadow-lift">
             <div className="mb-5">
-              <h3 className="text-xl font-bold">Replace Tyre</h3>
+              <h3 id="replace-tyre-title" className="text-xl font-bold">Replace Tyre</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {vehicle.vehicle_number} · Position {selected.position_code}
               </p>
@@ -2165,9 +2510,11 @@ function TyreViewSection() {
 }
 
 const TABS = [
+  { key: "overview", label: "Fleet Overview", icon: LayoutPanelTop },
   { key: "view", label: "Tyre View", icon: Truck },
   { key: "inventory", label: "Tyre Inventory", icon: Package },
   { key: "fitment", label: "Tyre Fitment", icon: Wrench },
+  { key: "maintenance", label: "Tyre Maintenance", icon: ClipboardCheck },
   { key: "teeth", label: "Excavator Teeth", icon: Hammer },
   { key: "services", label: "Services", icon: Cog },
   { key: "audit", label: "Audit Log", icon: History },
@@ -2176,32 +2523,46 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 export function TyreModule() {
-  const [tab, setTab] = useState<TabKey>("view");
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [focusTyreId, setFocusTyreId] = useState("");
+  const currentTab = TABS.find((item) => item.key === tab)!;
+  const descriptions: Record<TabKey, string> = {
+    overview: "See fleet health, upcoming work, odometer freshness, and recent maintenance spend.",
+    view: "Inspect tyre positions, condition, and service status by vehicle.",
+    inventory: "Record purchased and returned tyre stock.",
+    fitment: "Install tyres on a vehicle and track the wheel position and odometer reading.",
+    maintenance: "Log inspections, repairs, costs, documents, and next-service alerts.",
+    teeth: "Manage excavator teeth purchases and fitment records.",
+    services: "Track vehicle service work and related costs.",
+    audit: "Review and filter recorded changes across fleet modules.",
+  };
 
   return (
-    <AppShell activeKey={tab} onNavigate={(key) => setTab(key as TabKey)}>
+    <AppShell activeKey={tab} onNavigate={(key) => setTab(key as TabKey)} onSelectVehicle={setSelectedVehicleId}>
       <div className="space-y-4">
-        {tab !== "view" && (
+        {tab !== "view" && tab !== "maintenance" && tab !== "overview" && (
           <div className="rounded-md bg-card px-5 py-4 shadow-panel">
             <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-foreground">
-              Tyre Management
+              {currentTab.label}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              Purchase, fitment, excavator teeth, and service records for the
-              fleet.
+              {descriptions[tab]}
             </p>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1.5 shadow-sm">
+        <nav aria-label="Tyre management modules" className="overflow-x-auto rounded-xl border border-border/70 bg-card p-1.5 shadow-sm">
+          <div className="flex min-w-max flex-nowrap gap-1">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
               <button
                 key={t.key}
                 type="button"
+                aria-current={tab === t.key ? "page" : undefined}
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   tab === t.key
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -2212,11 +2573,14 @@ export function TyreModule() {
               </button>
             );
           })}
-        </div>
+          </div>
+        </nav>
 
-        {tab === "view" && <TyreViewSection />}
+        {tab === "view" && <TyreViewSection vehicleId={selectedVehicleId} onVehicleChange={setSelectedVehicleId} focusTyreId={focusTyreId} onFocusHandled={() => setFocusTyreId("")} />}
+        {tab === "overview" && <FleetOverview onNavigate={(key) => setTab(key as TabKey)} onSelectVehicle={setSelectedVehicleId} onSelectTyre={(vehicleId, tyreId) => { setSelectedVehicleId(vehicleId); setFocusTyreId(tyreId); }} />}
         {tab === "inventory" && <TyreInventorySection />}
         {tab === "fitment" && <TyreFitmentSection />}
+        {tab === "maintenance" && <TyreMaintenanceSection />}
         {tab === "teeth" && <TeethSection />}
         {tab === "services" && <ServicesSection />}
         {tab === "audit" && <AuditLogSection />}
