@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { positionSortKey, tyrePositions } from "@/lib/tyres";
 
 export type Vehicle = Tables<"vehicles">;
@@ -32,11 +32,29 @@ export function useAddVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (row: TablesInsert<"vehicles">) => {
-      const { data, error } = await supabase.from("vehicles").insert(row).select().single();
+      const { data, error } = await supabase.rpc("create_fleet_vehicle", { p_record: row });
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vehicles"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["tyres"] });
+    },
+  });
+}
+
+export function useImportFleetVehicles() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: Array<Pick<Vehicle, "vehicle_number" | "wheels" | "odometer">>) => {
+      const { data, error } = await supabase.rpc("import_fleet_vehicles", { p_rows: rows as Json });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["tyres"] });
+    },
   });
 }
 

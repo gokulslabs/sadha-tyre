@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 
 export type TyreInventory = Tables<"tyre_inventory">;
 export type TyreFitment = Tables<"tyre_fitment">;
@@ -28,23 +28,8 @@ export function useAddTyreMaintenance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: TablesInsert<"tyre_maintenance">) => {
-      const { error } = await supabase.from("tyre_maintenance").insert(row);
+      const { error } = await supabase.rpc("record_tyre_maintenance", { p_record: row as Json });
       if (error) throw error;
-      const { data: tyre, error: readTyreError } = await supabase.from("tyres").select("vehicle_id,fitted_km").eq("id", row.tyre_id).single();
-      if (readTyreError) throw readTyreError;
-      const { error: tyreError } = await supabase
-        .from("tyres")
-        .update({ current_km: Math.max(0, Number(row.km_reading ?? 0) - Number(tyre.fitted_km ?? 0)) })
-        .eq("id", row.tyre_id)
-        .lt("current_km", Math.max(0, Number(row.km_reading ?? 0) - Number(tyre.fitted_km ?? 0)));
-      if (tyreError) throw tyreError;
-      const tyrePatch = { ...(row.condition_after ? { condition: row.condition_after } : {}), ...(row.tread_depth_mm != null ? { tread_depth_mm: row.tread_depth_mm } : {}) };
-      if (Object.keys(tyrePatch).length) {
-        const { error: conditionError } = await supabase.from("tyres").update(tyrePatch).eq("id", row.tyre_id);
-        if (conditionError) throw conditionError;
-      }
-      const { error: vehicleError } = await supabase.from("vehicles").update({ odometer: row.km_reading ?? 0, odometer_updated_at: new Date().toISOString() }).eq("id", tyre.vehicle_id).lte("odometer", row.km_reading ?? 0);
-      if (vehicleError) throw vehicleError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tyre-maintenance"] });
@@ -123,49 +108,8 @@ export function useAddTyreFitment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: TablesInsert<"tyre_fitment">) => {
-      const { data: fitment, error } = await supabase
-        .from("tyre_fitment")
-        .insert(row)
-        .select()
-        .single();
+      const { data: fitment, error } = await supabase.rpc("record_tyre_fitment", { p_record: row as Json });
       if (error) throw error;
-      const position = row.tyre_place?.trim().toUpperCase() ?? "";
-      if (row.vehicle_id && /^\d+(R|L|RI|RO|LI|LO)$/.test(position)) {
-        const { data: tyre, error: tyreError } = await supabase
-          .from("tyres")
-          .upsert(
-            {
-              vehicle_id: row.vehicle_id,
-              position_code: position,
-              axle_label: `AXLE ${parseInt(position, 10)}`,
-              brand: row.brand ?? null,
-              serial_no: row.tyre_no ?? null,
-              current_km: 0,
-              fitted_km: row.km ?? 0,
-              fitted_on: row.entry_date ?? null,
-              tyre_type: "New",
-              status: "running",
-              remark: row.remarks ?? null,
-            },
-            { onConflict: "vehicle_id,position_code" },
-          )
-          .select("id")
-          .single();
-        if (tyreError) throw tyreError;
-        const { error: eventError } = await supabase.from("tyre_events").insert({
-          tyre_id: tyre.id,
-          event_date: row.entry_date ?? new Date().toISOString().slice(0, 10),
-          event_type: "fitted",
-          km_reading: row.km ?? 0,
-          cost: 0,
-          note: "Fitment recorded",
-        });
-        if (eventError) throw eventError;
-      }
-      if (row.vehicle_id && row.km != null) {
-        const { error: vehicleError } = await supabase.from("vehicles").update({ odometer: row.km, odometer_updated_at: new Date().toISOString() }).eq("id", row.vehicle_id).lte("odometer", row.km);
-        if (vehicleError) throw vehicleError;
-      }
       return fitment;
     },
     onSuccess: () => {
@@ -173,6 +117,23 @@ export function useAddTyreFitment() {
       qc.invalidateQueries({ queryKey: ["tyre-audit-log"] });
       qc.invalidateQueries({ queryKey: ["tyres"] });
       qc.invalidateQueries({ queryKey: ["tyre-events"] });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+  });
+}
+
+export function useReplaceTyre() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tyreId, record }: { tyreId: string; record: Json }) => {
+      const { data, error } = await supabase.rpc("replace_tyre", { p_tyre_id: tyreId, p_record: record });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tyre-events"] });
+      qc.invalidateQueries({ queryKey: ["tyre-audit-log"] });
+      qc.invalidateQueries({ queryKey: ["tyres"] });
       qc.invalidateQueries({ queryKey: ["vehicles"] });
     },
   });

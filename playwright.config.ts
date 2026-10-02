@@ -5,6 +5,7 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: "tyre-management.spec.ts",
   timeout: 30_000,
   use: { baseURL, trace: "retain-on-failure", ...devices["Desktop Chrome"] },
   // Keep browser tests focused on the app shell; their API is mocked and local

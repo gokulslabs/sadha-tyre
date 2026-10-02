@@ -563,12 +563,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_fleet_vehicle: {
+        Args: { p_record: Json }
+        Returns: Database["public"]["Tables"]["vehicles"]["Row"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      import_fleet_vehicles: {
+        Args: { p_rows: Json }
+        Returns: number
+      }
+      record_tyre_fitment: {
+        Args: { p_record: Json }
+        Returns: Database["public"]["Tables"]["tyre_fitment"]["Row"]
+      }
+      record_tyre_maintenance: {
+        Args: { p_record: Json }
+        Returns: Database["public"]["Tables"]["tyre_maintenance"]["Row"]
+      }
+      replace_tyre: {
+        Args: { p_record: Json; p_tyre_id: string }
+        Returns: Database["public"]["Tables"]["tyres"]["Row"]
       }
     }
     Enums: {

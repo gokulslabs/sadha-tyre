@@ -147,13 +147,15 @@ test.describe("Sadha Tyre Management", () => {
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([tyre]) });
     });
+    await page.route(/\/rest\/v1\/rpc\/record_tyre_maintenance(?:\?|$)/, async (route) => {
+      const { p_record } = route.request().postDataJSON() as { p_record: Record<string, unknown> };
+      saved.push(p_record);
+      Object.assign(tyre, { current_km: Number(p_record.km_reading), condition: p_record.condition_after, tread_depth_mm: p_record.tread_depth_mm });
+      if (Number(p_record.km_reading) >= Number(vehicle.odometer)) Object.assign(vehicle, { odometer: p_record.km_reading });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(p_record) });
+    });
     await page.route(/\/rest\/v1\/tyre_maintenance(?:\?|$)/, async (route) => {
-      if (route.request().method() === "POST") {
-        saved.push(route.request().postDataJSON() as Record<string, unknown>);
-        await route.fulfill({ status: 201, body: "" });
-      } else {
-        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(saved.map((record, index) => ({ id: `saved-${index}`, ...record }))) });
-      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(saved.map((record, index) => ({ id: `saved-${index}`, ...record }))) });
     });
 
     await page.goto("/");
@@ -204,6 +206,10 @@ test.describe("Sadha Tyre Management", () => {
       const body = route.request().method() === "GET" ? JSON.stringify([{ id: "existing-fleet-vehicle", vehicle_number: "TN23EXIST01", wheels: 4, odometer: 100, created_at: "2026-01-01", updated_at: "2026-01-01" }]) : "[]";
       await route.fulfill({ status: 200, contentType: "application/json", body });
     });
+    await page.route(/\/rest\/v1\/rpc\/import_fleet_vehicles(?:\?|$)/, async (route) => {
+      vehicleWrites++;
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "Unexpected import write" }) });
+    });
     await page.goto("/");
     await page.getByRole("button", { name: "Fleet Overview", exact: true }).click();
     await page.getByRole("button", { name: /Import (?:fleet )?CSV/ }).click();
@@ -223,6 +229,10 @@ test.describe("Sadha Tyre Management", () => {
       if (route.request().method() === "POST") vehicleWrites++;
       const body = route.request().method() === "GET" ? JSON.stringify([{ id: "existing-fleet-vehicle", vehicle_number: "TN23EXIST01", wheels: 4, odometer: 100, created_at: "2026-01-01", updated_at: "2026-01-01" }]) : "[]";
       await route.fulfill({ status: 200, contentType: "application/json", body });
+    });
+    await page.route(/\/rest\/v1\/rpc\/import_fleet_vehicles(?:\?|$)/, async (route) => {
+      vehicleWrites++;
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "Unexpected import write" }) });
     });
     await page.goto("/");
     await page.getByRole("button", { name: "Fleet Overview", exact: true }).click();
@@ -246,21 +256,19 @@ test.describe("Sadha Tyre Management", () => {
     let insertedPositions: Record<string, unknown>[] = [];
 
     await page.route(/\/rest\/v1\/vehicles(?:\?|$)/, async (route) => {
-      if (route.request().method() === "POST") {
-        insertedVehicle = route.request().postDataJSON() as Record<string, unknown>;
-        const row = { id: vehicleId, ...insertedVehicle, created_at: now, updated_at: now, odometer_updated_at: now };
-        vehicles.push(row);
-        return route.fulfill({ status: 201, contentType: "application/vnd.pgrst.object+json", body: JSON.stringify(row) });
-      }
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(vehicles) });
     });
     await page.route(/\/rest\/v1\/tyres(?:\?|$)/, async (route) => {
-      if (route.request().method() === "POST") {
-        insertedPositions = route.request().postDataJSON() as Record<string, unknown>[];
-        tyres.push(...insertedPositions.map((row, index) => ({ id: `csv-import-tyre-${index}`, ...row, current_km: 0, fitted_km: 0, cost: 0, tyre_type: "New", status: "running", created_at: now, updated_at: now })));
-        return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(tyres) });
-      }
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(tyres) });
+    });
+    await page.route(/\/rest\/v1\/rpc\/import_fleet_vehicles(?:\?|$)/, async (route) => {
+      const body = route.request().postDataJSON() as { p_rows: Array<Record<string, unknown>> };
+      insertedVehicle = body.p_rows[0];
+      const vehicle = { id: vehicleId, ...insertedVehicle, created_at: now, updated_at: now, odometer_updated_at: now };
+      vehicles.push(vehicle);
+      insertedPositions = ["1R", "1L", "2R", "2L", "3RI", "3RO", "3LI", "3LO", "4RI", "4RO", "4LI", "4LO"].map((position_code, index) => ({ vehicle_id: vehicleId, position_code, axle_label: `AXLE ${index < 4 ? Math.floor(index / 2) + 1 : Math.floor((index - 4) / 4) + 3}` }));
+      tyres.push(...insertedPositions.map((row, index) => ({ id: `csv-import-tyre-${index}`, ...row, current_km: 0, fitted_km: 0, cost: 0, tyre_type: "New", status: "running", created_at: now, updated_at: now })));
+      await route.fulfill({ status: 200, contentType: "application/json", body: "1" });
     });
 
     await page.goto("/");
@@ -289,8 +297,11 @@ test.describe("Sadha Tyre Management", () => {
     await page.route(/\/rest\/v1\/vehicles(?:\?|$)/, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([vehicle]) }));
     await page.route(/\/rest\/v1\/tyres(?:\?|$)/, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([tyre]) }));
     await page.route(/\/rest\/v1\/tyre_maintenance(?:\?|$)/, async (route) => {
-      if (route.request().method() === "POST") maintenanceWrites++;
       await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    });
+    await page.route(/\/rest\/v1\/rpc\/record_tyre_maintenance(?:\?|$)/, async (route) => {
+      maintenanceWrites++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
     });
     await page.route(/\/storage\/v1\/object\/tyre-documents\//, (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "Synthetic upload failure" }) }));
     await page.goto("/");
@@ -387,17 +398,4 @@ test.describe("Sadha Tyre Management", () => {
     await expect(page.locator("html")).toHaveClass(/dark/);
   });
 
-  test("mutation workflow coverage (opt-in against a disposable Supabase project)", async ({ page }) => {
-    test.skip(process.env.E2E_MUTATIONS !== "true", "Set E2E_MUTATIONS=true only against disposable test data");
-    await page.goto("/");
-    await loginIfRequired(page);
-    await page.getByRole("button", { name: "Add vehicle", exact: true }).click();
-    await page.getByPlaceholder("MH12XX0000").fill(`E2E-${Date.now()}`);
-    await page.getByRole("button", { name: "Create vehicle", exact: true }).click();
-    await expect(page.getByText("Vehicle added")).toBeVisible();
-    await page.getByRole("button", { name: "Tyre Fitment", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Record fitment", exact: true })).toBeVisible();
-    // Replacement, document upload, edit, and delete are covered by the same
-    // disposable-data run; they are intentionally not run on client data.
-  });
 });

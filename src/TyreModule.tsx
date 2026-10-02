@@ -43,7 +43,6 @@ import {
   useProvisionTyres,
   useSetExistingTyre,
   useSaveTyre,
-  useAddTyreEvent,
   useTyreEvents,
   useAddVehicle,
   type Tyre,
@@ -79,6 +78,7 @@ import {
   useUpdateServiceEntry,
   useServiceEntries,
   useAddTyreMaintenance,
+  useReplaceTyre,
   useTyreMaintenance,
   useTeethFitment,
   useTeethPurchase,
@@ -1698,7 +1698,7 @@ function TyreViewSection({ vehicleId, onVehicleChange, focusTyreId, onFocusHandl
   const setExisting = useSetExistingTyre();
   const save = useSaveTyre();
   const addVehicle = useAddVehicle();
-  const addEvent = useAddTyreEvent();
+  const replaceTyre = useReplaceTyre();
 
   const axleGroups = useMemo(() => {
     const groups = new Map<string, Tyre[]>();
@@ -1882,24 +1882,18 @@ function TyreViewSection({ vehicleId, onVehicleChange, focusTyreId, onFocusHandl
           documentPath = path;
         }
       }
-      await save.mutateAsync({
-        id: selected.id,
-        tyre_type: replacement.tyre_type,
-        serial_no: replacement.serial_no || null,
-        fitted_on: replacement.event_date,
-        fitted_km: Number(replacement.km_reading) || 0,
-        current_km: 0,
-        cost: Number(replacement.amount) || 0,
-        status: "running",
-        remark: replacement.remark || null,
-      });
-      await addEvent.mutateAsync({
-        tyre_id: selected.id,
-        event_date: replacement.event_date,
-        event_type: "replaced",
-        km_reading: Number(replacement.km_reading) || 0,
-        cost: Number(replacement.amount) || 0,
-        note: [`Source: ${replacement.source}`, replacement.remark, documentPath ? `Document: ${documentPath}` : replacementDocument ? `Document: ${replacementDocument.name}` : ""].filter(Boolean).join(" · "),
+      await replaceTyre.mutateAsync({
+        tyreId: selected.id,
+        record: {
+          tyre_type: replacement.tyre_type,
+          serial_no: replacement.serial_no || null,
+          event_date: replacement.event_date,
+          km_reading: Number(replacement.km_reading) || 0,
+          amount: Number(replacement.amount) || 0,
+          source: replacement.source,
+          remark: replacement.remark || null,
+          document_path: documentPath || null,
+        },
       });
       toast.success(`Tyre ${selected.position_code} replaced`);
       setReplacementOpen(false);
@@ -2497,7 +2491,7 @@ function TyreViewSection({ vehicleId, onVehicleChange, focusTyreId, onFocusHandl
               </Button>
               <Button
                 onClick={replaceSelected}
-                disabled={save.isPending || addEvent.isPending}
+                disabled={save.isPending || replaceTyre.isPending}
               >
                 Save Tyre
               </Button>

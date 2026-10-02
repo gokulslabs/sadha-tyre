@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, CalendarClock, CircleCheck, Gauge, Truck, Upload, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAddVehicle, useAllTyres, useProvisionTyres, useVehicles, type Tyre, type Vehicle } from "@/hooks/useTyres";
+import { useAllTyres, useImportFleetVehicles, useVehicles, type Tyre, type Vehicle } from "@/hooks/useTyres";
 import { useServiceEntries, useTyreFitment, useTyreInventory, useTyreMaintenance, type TyreMaintenance } from "@/hooks/useTyreModule";
 import { inr, WHEEL_CONFIGS } from "@/lib/tyres";
 import { toast } from "sonner";
@@ -49,8 +49,7 @@ function parseVehicleCsv(text: string): ImportVehicle[] {
 
 function VehicleImport({ onDone }: { onDone: () => void }) {
   const { data: existing = [] } = useVehicles();
-  const addVehicle = useAddVehicle();
-  const provision = useProvisionTyres();
+  const importVehicles = useImportFleetVehicles();
   const [rows, setRows] = useState<ImportVehicle[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,28 +68,27 @@ function VehicleImport({ onDone }: { onDone: () => void }) {
     });
     if (duplicates.length) { setError(`Already in fleet: ${duplicates.map((row) => row.vehicle_number).join(", ")}. Remove duplicates from the file first.`); return; }
     setBusy(true);
-    let completed = 0;
     try {
-      for (const row of rows) {
-        const vehicle = await addVehicle.mutateAsync(row);
-        await provision.mutateAsync(vehicle);
-        completed++;
-      }
-      toast.success(`${completed} vehicles imported with tyre positions`);
+      const completed = await importVehicles.mutateAsync(rows);
+      toast.success(`${completed ?? rows.length} vehicles imported with tyre positions`);
       onDone();
     } catch (reason) {
-      toast.error(`${completed} of ${rows.length} imported. ${reason instanceof Error ? reason.message : "Import stopped."}`);
+      const message = reason instanceof Error ? reason.message : "Import failed; no rows were imported.";
+      setError(message);
+      toast.error(message);
     } finally { setBusy(false); }
   }
   return <div className="space-y-3 rounded-lg border border-border bg-card p-4">
     <div><h3 className="font-semibold">Import your fleet</h3><p className="mt-1 text-sm text-muted-foreground">CSV columns: <code>vehicle_number,wheels,odometer</code>. Odometer is optional. One vehicle per row.</p></div>
     <input type="file" accept=".csv,text/csv" aria-label="Choose fleet CSV" onChange={(event) => void readFile(event.target.files?.[0])} className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-border file:bg-muted file:px-3 file:py-2" />
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    {rows.length > 0 && <><p className="text-sm">Preview: {rows.length} vehicle{rows.length === 1 ? "" : "s"}. Tyre positions will be created from each wheel count.</p><div className="flex flex-wrap gap-2">{rows.slice(0, 5).map((row, index) => <span key={`${row.vehicle_number}-${index}`} className="rounded bg-muted px-2 py-1 text-xs">{row.vehicle_number} · {row.wheels} wheels · {row.odometer.toLocaleString("en-IN")} km</span>)}</div><Button onClick={() => void importRows()} disabled={busy}>{busy ? `Importing ${completedLabel(addVehicle.isPending, provision.isPending)}…` : `Import ${rows.length} vehicles`}</Button></>}
+    {rows.length > 0 && <>
+      <p className="text-sm">Preview: {rows.length} vehicle{rows.length === 1 ? "" : "s"}. Tyre positions will be created from each wheel count.</p>
+      <div className="flex flex-wrap gap-2">{rows.slice(0, 5).map((row, index) => <span key={`${row.vehicle_number}-${index}`} className="rounded bg-muted px-2 py-1 text-xs">{row.vehicle_number} · {row.wheels} wheels · {row.odometer.toLocaleString("en-IN")} km</span>)}</div>
+      <Button onClick={() => void importRows()} disabled={busy || importVehicles.isPending}>{importVehicles.isPending ? "Importing fleet…" : `Import ${rows.length} vehicles`}</Button>
+    </>}
   </div>;
 }
-
-function completedLabel(vehiclePending: boolean, tyresPending: boolean) { return vehiclePending || tyresPending ? "vehicle and tyres" : "fleet"; }
 
 function Stat({ label, value, helper, icon: Icon, tone = "neutral" }: { label: string; value: string; helper: string; icon: typeof Truck; tone?: "neutral" | "warning" | "info" }) {
   return <Card className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p><p className="mt-1 text-xs text-muted-foreground">{helper}</p></div><span className={`rounded-lg p-2 ${tone === "warning" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : tone === "info" ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200" : "bg-muted text-muted-foreground"}`}><Icon className="h-5 w-5" /></span></div></Card>;
